@@ -8,6 +8,18 @@
 <body>
   <div id="app"></div>
   <script>
+    // 自动清理无效登录态（token 存在但 role 缺失/无效时清除，防止无限重定向）
+    (function() {
+      var token = localStorage.getItem('xiyue_token');
+      var role = localStorage.getItem('xiyue_role');
+      var valid = role === 'USER' || role === 'AUNT' || role === 'ADMIN';
+      if (token && !valid) {
+        ['xiyue_token','xiyue_role','xiyue_user_id','xiyue_phone','xiyue_nickname'].forEach(function(k) { localStorage.removeItem(k); });
+        console.log('[息悦生活] 已自动清理无效登录态');
+      }
+    })();
+  </script>
+  <script>
     // 错误捕获：白屏时显示具体 JS 错误（诊断用）
     window.onerror = function(msg, url, line, col, err) {
       var app = document.getElementById('app');
