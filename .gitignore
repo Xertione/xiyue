@@ -1,0 +1,44 @@
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+**/application-local.yml
+**/application-local.yaml
+
+# Secrets and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Database dumps and runtime data
+*.sql.gz
+*.dump
+*.bak
+backup/
+backups/
+docker/mysql/data/
+docker/redis/data/
+
+# Local logs and audit backups
+*.log
+logs/
+.codex/audit-backup/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Build output
+target/
+node_modules/
+dist/
+
+# WorkBuddy working data (memory logs may include secrets)
+.workbuddy/
