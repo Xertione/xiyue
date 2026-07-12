@@ -43,15 +43,15 @@ xiyue-life/
 │   │
 │   ├── progress.md                    ← 项目开发进度
 │   ├── troubleshooting.md             ← [开发中追加] 踩坑记录
-│   ├── decision-log.md                ← 8 条关键架构决策已记录
+│   ├── decision-log.md                ← 13 条关键架构决策已记录（ADR-001~013）
 │   ├── architecture.md                ← 系统架构说明
-│   ├── database.md                    ← 数据库设计（待建表后补充 SQL）
-│   ├── api.md                         ← 接口清单草案
+│   ├── database.md                    ← 数据库设计（sys_user + aunt 已建，阶段1）
+│   ├── api.md                         ← 接口清单（认证模块已实现）
 │   ├── test-cases.md                  ← 测试用例清单
 │   ├── deployment.md                  ← 部署手册框架
-│   ├── changelog.md                   ← v0.1.0 文档初始化
+│   ├── changelog.md                   ← v0.3.0 阶段1认证注册
 │   └── interview-notes.md             ← 模板，待 MVP 完成后再填充
-├── backend/                           ← [待创建] Spring Boot 后端
+├── backend/                           ← ✅ Spring Boot 后端（阶段0骨架 + 阶段1认证）
 ├── frontend/                         ← [待创建] Vue 3 前端工程（用户/阿姨/管理员路由）
 ├── docker/                            ← [待创建] Docker 配置
 └── docker-compose.yml                 ✅ 已就绪（mysql + redis，含 healthcheck/资源限制/日志滚动）
@@ -102,7 +102,7 @@ xiyue-life/
 | 待确认事项 | ✅ 已全部确认（2026-07-12） |
 | MVP 范围 | ✅ 已更新定稿（基于确认结果） |
 | Agent 指令 | ✅ 已更新为正式版（基于确认结果） |
-| 后端开发 | 🟡 骨架就绪（阶段0完成，待阶段1） |
+| 后端开发 | 🟡 阶段1完成（认证与注册：建表+注册/登录/JWT/Security），待阶段2 |
 | 前端开发 | 🔲 未开始 |
 | 部署 | 🟡 基础设施就绪（mysql + redis 容器） |
 
@@ -153,4 +153,4 @@ xiyue-life/
 
 ---
 
-*最后更新：2026-07-12*
+*最后更新：2026-07-13*

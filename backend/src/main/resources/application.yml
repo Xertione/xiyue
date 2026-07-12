@@ -21,6 +21,23 @@ spring:
       port: ${REDIS_PORT:6380}
       password: ${REDIS_PASSWORD}
       timeout: 3000ms
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+
+# 业务配置
+xiyue:
+  jwt:
+    # JWT 签名密钥（HS256），至少 32 字节，密码学安全随机值，禁止入库
+    secret: ${JWT_SECRET:}
+    # Token 有效期（毫秒），默认 7 天
+    expiration-ms: 604800000
+  admin:
+    # 管理员初始密码，仅 AdminAccountInitializer 创建 ADMIN 账号时使用，禁止入库
+    init-password: ${ADMIN_INIT_PASSWORD:}
+    # 管理员手机号（默认占位号，生产环境请通过环境变量覆盖）
+    phone: ${ADMIN_PHONE:13800000000}
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

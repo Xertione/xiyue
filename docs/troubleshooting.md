@@ -86,3 +86,19 @@
 - **原因：** Git Bash (MSYS) 的路径转换规则未将 `//PID` 还原为 `/PID`，taskkill.exe 收到字面 `//PID`。
 - **解决方案：** 加 `MSYS_NO_PATHCONV=1` 前缀禁用路径转换：`MSYS_NO_PATHCONV=1 taskkill /PID <pid> /F`。
 - **规则固化：** Git Bash 下调用带 `/` 前缀参数的 Windows 命令（taskkill 等）需 `MSYS_NO_PATHCONV=1`。
+
+---
+
+## T-008：MySQL 命令行客户端中文显示乱码（非数据问题）
+
+- **日期：** 2026-07-13
+- **现象：** 阶段 1 验证时，`docker exec xiyue-mysql mysql -uroot -p<MYSQL_ROOT_PASSWORD> -e "SELECT nickname FROM sys_user"` 显示管理员昵称 `系统管理员` 为 `?????`，疑似数据乱码。
+- **排查：**
+  1. 通过 `GET /api/auth/profile` 接口返回 `"nickname":"系统管理员"` 正常显示；
+  2. `GET /api/auth/login/password` 登录响应 `nickname` 字段也正常；
+  3. 数据库表与连接均为 `utf8mb4`，`application.yml` 已配 `server.servlet.encoding.force: true`。
+- **原因：** `docker exec mysql mysql -e` 在 Git Bash（GBK 终端）输出 UTF-8 数据时，客户端编码与终端编码不匹配，导致**显示**乱码；数据库**存储**的 UTF-8 字节本身正确。
+- **解决方案：** 这不是数据问题，无需修复。需要确认中文数据时：
+  1. 优先用接口返回验证（接口走 Spring Boot UTF-8 响应）；
+  2. 或 `docker exec xiyue-mysql mysql --default-character-set=utf8mb4 -uroot -p<MYSQL_ROOT_PASSWORD> -e "..."` 显式指定客户端字符集。
+- **教训：** 看到 mysql 命令行中文乱码时，先通过接口或 `--default-character-set=utf8mb4` 复核，不要直接判定数据损坏。

@@ -19,6 +19,7 @@
 
 | 接口 | 方法 | 权限 | 说明 |
 |---|---|---|---|
+| `/api/auth/sms-code` | POST | 无需登录 | 发送验证码（固定 123456 写入 Redis Key `sms:code:{phone}`，TTL 5 分钟） |
 | `/api/auth/register` | POST | 无需登录 | 用户/阿姨自行注册（角色仅允许 USER/AUNT，禁止 ADMIN） |
 | `/api/auth/login/password` | POST | 无需登录 | 密码登录 |
 | `/api/auth/login/code` | POST | 无需登录 | 验证码登录 |

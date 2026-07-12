@@ -5,6 +5,36 @@
 
 ---
 
+## [0.3.0] — 2026-07-13
+
+### Added
+
+- 数据库建表：`sys_user`（id/phone 唯一/password/role/nickname/create_time/update_time）+ `aunt`（id/user_id 唯一/name/avatar/price/rating/service_count/skill_tags/intro/admin_status/accept_status/create_time/update_time），`schema.sql` 幂等，`spring.sql.init` 启动自动执行
+- 实体与 Mapper：`SysUser` / `Aunt` / `RoleEnum`（含 `isRegisterable` 白名单方法）/ `SysUserMapper` / `AuntMapper`
+- ADMIN 账号初始化：`AdminAccountInitializer`（ApplicationRunner），启动时检查无 ADMIN 则用 `ADMIN_INIT_PASSWORD` 环境变量 BCrypt 加密后插入，密码不入 SQL/源码/Git（ADR-013）
+- JWT 工具：`JwtProperties` + `JwtUtil`（HS512，密钥至少 32 字节启动校验，claims 含 sub=userId/phone/role）
+- Redis 验证码服务：`SmsCodeService`（固定验证码 123456，Key `sms:code:{phone}` TTL 5 分钟，校验通过一次性删除）
+- 认证 DTO：`SmsCodeRequest` / `RegisterRequest` / `PasswordLoginRequest` / `CodeLoginRequest` / `ResetPasswordRequest` / `LoginResponse` / `ProfileResponse`（含 jakarta validation 注解）
+- 认证 Service：`AuthService`（注册事务含阿姨同步建 aunt、密码登录、验证码登录、找回密码、获取 profile；角色白名单禁 ADMIN；角色取自数据库不信客户端）
+- 认证 Controller：`AuthController`（6 接口：sms-code / register / login/password / login/code / reset-password / profile）
+- Spring Security JWT 集成：`JwtAuthenticationFilter` + `RestAuthenticationEntryPoint`(401) + `RestAccessDeniedHandler`(403) + `LoginUser`(UserDetails) + `SecurityUserContext`
+- 配置：`application.yml` 加 `xiyue.jwt` / `xiyue.admin` / `spring.sql.init`；`application-local.yml` 补本地 JWT 密钥与 ADMIN 密码（不入库）
+
+### Changed
+
+- `SecurityConfig` 收紧：STATELESS + 禁 CSRF + 公开接口 permitAll（health/文档/auth 公开接口）+ 其余 `anyRequest().authenticated()` + 加 JWT Filter + 挂 EntryPoint/DeniedHandler
+- 阶段 0 临时 `permitAll` 全部移除，受保护接口现在强制 JWT 认证
+
+### Verified
+
+- 全流程 curl 验证 17 项全部通过：注册(USER/AUNT/ADMIN拒绝/重复拒绝/错误码拒绝)、密码登录、验证码登录、profile、401(无token/错误token)、找回密码、ADMIN 启动初始化登录、数据库表/索引/数据、Redis 验证码一次性
+
+### Decision
+
+- ADR-013：ADMIN 账号由应用启动初始化（密码走环境变量，非 init.sql 明文），符合 ADR-012 敏感配置仅环境变量注入
+
+---
+
 ## [0.2.0] — 2026-07-12
 
 ### Added
