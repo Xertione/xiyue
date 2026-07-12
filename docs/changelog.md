@@ -5,6 +5,27 @@
 
 ---
 
+## [0.6.0] — 2026-07-13
+
+### Added
+
+- 数据表：`review`（uk_review_order）+ `complaint`（uk_complaint_order）+ `service_order` 加 `complete_image` 字段
+- 服务履约：OrderService.start/complete/confirm（条件更新防并发，规范 §5.4）+ OrderController 3 接口
+- 评价：ReviewService（含阿姨评分加权平均更新 + service_count +1）+ ReviewController（POST /api/reviews + GET /api/orders/{id}/review）
+- 投诉：ComplaintService（create/listForAdmin/handle）+ ComplaintController + AdminComplaintController
+- OrderStatus 9 态全部打通：0→1→2→3→4→5→6（评价）/8→6（投诉处理），7取消
+
+### Verified
+
+- curl 14 项全通过：start→complete(imageUrl)→confirm→评价(评分5.0+count1)→重复评价拒→投诉→投诉中→重复投诉拒→管理员处理→已完成→投诉后评价拒→评分不变→越权403→非法状态1001→complaint表数据
+
+### Decision
+
+- ADR-019：投诉处理后不更新阿姨评分（规范 §7.9）
+- ADR-020：评价评分采用读-算-写（MVP 并发量小可接受，后续可改 SQL 原子更新）
+
+---
+
 ## [0.5.0] — 2026-07-13
 
 ### Added

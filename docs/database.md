@@ -20,8 +20,8 @@
 | `aunt` | 阿姨资料（个人信息 + 运营状态） | ✅ 已创建（阶段1，运营字段编辑留阶段2） |
 | `service_order` | 预约订单（含地址快照、价格快照） | ✅ 已创建（阶段3） |
 | `aunt_booking_slot` | 阿姨小时块档期占用记录 | ✅ 已创建（阶段3） |
-| `review` | 用户评价 | 🔲 待创建（阶段4） |
-| `complaint` | 用户投诉 | 🔲 待创建（阶段4） |
+| `review` | 用户评价 | ✅ 已创建（阶段4） |
+| `complaint` | 用户投诉 | ✅ 已创建（阶段4） |
 
 关系约束：
 
@@ -101,6 +101,7 @@
 | refund_no | VARCHAR(64) | NULL | 模拟退款流水号 |
 | refund_time | DATETIME | NULL | 模拟退款时间 |
 | cancel_time | DATETIME | NULL | 取消时间 |
+| complete_image | VARCHAR(500) | NULL | 服务完成演示图片URL（阿姨提交完成时上传，阶段4） |
 | create_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP | 创建时间 |
 | update_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
 
@@ -180,6 +181,38 @@
 - `service_order(aunt_id, status, service_date)`：阿姨订单列表；
 - `service_order(status, service_date)`：抢单大厅和管理员筛选；
 - `complaint(status, create_time)`：管理员投诉列表。
+
+---
+
+### review — 用户评价（阶段4已建）
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT | 主键ID |
+| order_id | BIGINT | NOT NULL, UNIQUE(`uk_review_order`) | 关联订单（一个订单只能评价一次） |
+| user_id | BIGINT | NOT NULL | 评价用户 sys_user.id |
+| rating | INT | NOT NULL | 评分（1-5） |
+| content | TEXT | NOT NULL | 评价内容 |
+| create_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| update_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+
+引擎 InnoDB，字符集 utf8mb4。评价后订单变为已完成，并更新阿姨评分（加权平均）与服务次数（ADR-020）。
+
+### complaint — 用户投诉（阶段4已建，简化版）
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT | 主键ID |
+| order_id | BIGINT | NOT NULL, UNIQUE(`uk_complaint_order`) | 关联订单（一个订单只能投诉一次） |
+| user_id | BIGINT | NOT NULL | 投诉用户 sys_user.id |
+| reason | TEXT | NOT NULL | 投诉原因 |
+| status | VARCHAR(20) | NOT NULL DEFAULT 'PENDING' | 处理状态：PENDING 待处理 / HANDLED 已处理 |
+| handle_remark | TEXT | NULL | 管理员处理备注 |
+| handle_time | DATETIME | NULL | 处理时间 |
+| create_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| update_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+
+引擎 InnoDB，字符集 utf8mb4。仅待评价订单可投诉；管理员处理后订单变为已完成，不再允许评价，不更新阿姨评分（ADR-019）。
 
 ---
 

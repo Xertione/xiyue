@@ -36,6 +36,7 @@ public class OrderDetail {
     private String refundNo;
     private LocalDateTime refundTime;
     private LocalDateTime cancelTime;
+    private String completeImage;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

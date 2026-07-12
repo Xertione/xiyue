@@ -85,6 +85,9 @@ public class ServiceOrder {
     /** 取消时间 */
     private LocalDateTime cancelTime;
 
+    /** 服务完成演示图片URL（阿姨提交完成时上传） */
+    private String completeImage;
+
     /** 创建时间 */
     private LocalDateTime createTime;
 

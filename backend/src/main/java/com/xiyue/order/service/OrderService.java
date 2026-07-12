@@ -370,6 +370,84 @@ public class OrderService {
         return toDetail(order);
     }
 
+    // ===== 服务履约（阶段4）=====
+
+    /**
+     * 阿姨开始服务（待服务→服务中，规范 §5.4）。
+     *
+     * <p>条件更新（WHERE status=待服务 AND aunt_id=当前阿姨）防止与取消并发。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void start(Long auntUserId, Long orderId) {
+        Aunt aunt = auntMapper.selectOne(
+            new LambdaQueryWrapper<Aunt>().eq(Aunt::getUserId, auntUserId)
+        );
+        if (aunt == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "阿姨资料不存在，仅阿姨角色可操作");
+        }
+        int rows = orderMapper.update(null,
+            new LambdaUpdateWrapper<ServiceOrder>()
+                .set(ServiceOrder::getStatus, OrderStatus.IN_SERVICE.getCode())
+                .eq(ServiceOrder::getId, orderId)
+                .eq(ServiceOrder::getStatus, OrderStatus.PENDING_SERVICE.getCode())
+                .eq(ServiceOrder::getAuntId, aunt.getId())
+        );
+        if (rows != 1) {
+            throw new BusinessException(ResultCode.ORDER_STATUS_INVALID,
+                "开始服务失败，订单状态可能已变更或非你接的单");
+        }
+        log.info("阿姨开始服务（auntUserId={}, orderId={}）", auntUserId, orderId);
+    }
+
+    /**
+     * 阿姨提交服务完成（服务中→待确认，规范 §5.4、§9 阶段4）。
+     *
+     * <p>上传演示图片 URL，条件更新（WHERE status=服务中 AND aunt_id）防止并发。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void complete(Long auntUserId, Long orderId, String imageUrl) {
+        Aunt aunt = auntMapper.selectOne(
+            new LambdaQueryWrapper<Aunt>().eq(Aunt::getUserId, auntUserId)
+        );
+        if (aunt == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "阿姨资料不存在，仅阿姨角色可操作");
+        }
+        int rows = orderMapper.update(null,
+            new LambdaUpdateWrapper<ServiceOrder>()
+                .set(ServiceOrder::getStatus, OrderStatus.PENDING_CONFIRM.getCode())
+                .set(ServiceOrder::getCompleteImage, imageUrl)
+                .eq(ServiceOrder::getId, orderId)
+                .eq(ServiceOrder::getStatus, OrderStatus.IN_SERVICE.getCode())
+                .eq(ServiceOrder::getAuntId, aunt.getId())
+        );
+        if (rows != 1) {
+            throw new BusinessException(ResultCode.ORDER_STATUS_INVALID,
+                "提交完成失败，订单状态可能已变更或非你接的单");
+        }
+        log.info("阿姨提交服务完成（auntUserId={}, orderId={}, imageUrl={}）", auntUserId, orderId, imageUrl);
+    }
+
+    /**
+     * 用户确认服务完成（待确认→待评价，规范 §5.4）。
+     *
+     * <p>条件更新（WHERE status=待确认 AND user_id）防止并发。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void confirm(Long userId, Long orderId) {
+        int rows = orderMapper.update(null,
+            new LambdaUpdateWrapper<ServiceOrder>()
+                .set(ServiceOrder::getStatus, OrderStatus.PENDING_REVIEW.getCode())
+                .eq(ServiceOrder::getId, orderId)
+                .eq(ServiceOrder::getStatus, OrderStatus.PENDING_CONFIRM.getCode())
+                .eq(ServiceOrder::getUserId, userId)
+        );
+        if (rows != 1) {
+            throw new BusinessException(ResultCode.ORDER_STATUS_INVALID,
+                "确认失败，订单状态可能已变更或非你的订单");
+        }
+        log.info("用户确认服务完成（userId={}, orderId={}）", userId, orderId);
+    }
+
     // ===== 管理员端 =====
 
     /**
@@ -540,6 +618,7 @@ public class OrderService {
             .refundNo(order.getRefundNo())
             .refundTime(order.getRefundTime())
             .cancelTime(order.getCancelTime())
+            .completeImage(order.getCompleteImage())
             .createTime(order.getCreateTime())
             .updateTime(order.getUpdateTime())
             .build();

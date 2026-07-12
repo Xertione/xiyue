@@ -2,6 +2,7 @@ package com.xiyue.order.controller;
 
 import com.xiyue.common.result.PageResponse;
 import com.xiyue.common.result.Result;
+import com.xiyue.order.dto.CompleteRequest;
 import com.xiyue.order.dto.CreateOrderRequest;
 import com.xiyue.order.dto.GrabListItem;
 import com.xiyue.order.dto.OrderDetail;
@@ -94,6 +95,15 @@ public class OrderController {
         return Result.success();
     }
 
+    @Operation(summary = "用户确认服务完成（待确认→待评价）")
+    @PostMapping("/{id}/confirm")
+    @PreAuthorize("hasRole('USER')")
+    public Result<Void> confirm(@PathVariable Long id) {
+        Long userId = securityUserContext.getCurrentUserId();
+        orderService.confirm(userId, id);
+        return Result.success();
+    }
+
     // ===== 阿姨端 =====
 
     @Operation(summary = "抢单大厅（待抢单订单列表）")
@@ -123,5 +133,23 @@ public class OrderController {
             @RequestParam(required = false) Integer status) {
         Long auntUserId = securityUserContext.getCurrentUserId();
         return Result.success(orderService.listForAunt(auntUserId, page, size, status));
+    }
+
+    @Operation(summary = "阿姨开始服务（待服务→服务中）")
+    @PostMapping("/{id}/start")
+    @PreAuthorize("hasRole('AUNT')")
+    public Result<Void> start(@PathVariable Long id) {
+        Long auntUserId = securityUserContext.getCurrentUserId();
+        orderService.start(auntUserId, id);
+        return Result.success();
+    }
+
+    @Operation(summary = "阿姨提交服务完成（服务中→待确认，上传演示图片URL）")
+    @PostMapping("/{id}/complete")
+    @PreAuthorize("hasRole('AUNT')")
+    public Result<Void> complete(@PathVariable Long id, @Valid @RequestBody CompleteRequest req) {
+        Long auntUserId = securityUserContext.getCurrentUserId();
+        orderService.complete(auntUserId, id, req.getImageUrl());
+        return Result.success();
     }
 }

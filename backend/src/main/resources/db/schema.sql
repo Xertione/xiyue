@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS service_order (
     refund_no       VARCHAR(64)   DEFAULT NULL COMMENT '模拟退款流水号',
     refund_time     DATETIME      DEFAULT NULL COMMENT '模拟退款时间',
     cancel_time     DATETIME      DEFAULT NULL COMMENT '取消时间',
+    complete_image  VARCHAR(500)  DEFAULT NULL COMMENT '服务完成演示图片URL（阿姨提交完成时上传）',
     create_time     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id),
@@ -96,3 +97,37 @@ CREATE TABLE IF NOT EXISTS aunt_booking_slot (
     UNIQUE KEY uk_aunt_date_hour (aunt_id, service_date, hour_slot) COMMENT '同一阿姨同一日期同一小时块唯一',
     KEY idx_order (order_id) COMMENT '按订单释放档期'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='阿姨小时块档期占用记录';
+
+-- ------------------------------------------------------------
+-- review：用户评价（阶段 4）
+-- 一个订单只能评价一次（uk_review_order）。评价后订单变为已完成，更新阿姨评分与服务次数。
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS review (
+    id          BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    order_id    BIGINT      NOT NULL COMMENT '关联订单 service_order.id',
+    user_id     BIGINT      NOT NULL COMMENT '评价用户 sys_user.id',
+    rating      INT         NOT NULL COMMENT '评分（1-5）',
+    content     TEXT        NOT NULL COMMENT '评价内容',
+    create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_review_order (order_id) COMMENT '一个订单只能评价一次'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='用户评价';
+
+-- ------------------------------------------------------------
+-- complaint：用户投诉（阶段 4，简化版）
+-- 一个订单只能投诉一次（uk_complaint_order）。仅待评价订单可投诉；管理员处理后订单已完成，不再允许评价。
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS complaint (
+    id            BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    order_id      BIGINT      NOT NULL COMMENT '关联订单 service_order.id',
+    user_id       BIGINT      NOT NULL COMMENT '投诉用户 sys_user.id',
+    reason        TEXT        NOT NULL COMMENT '投诉原因',
+    status        VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '处理状态：PENDING 待处理 / HANDLED 已处理',
+    handle_remark TEXT        DEFAULT NULL COMMENT '管理员处理备注',
+    handle_time   DATETIME    DEFAULT NULL COMMENT '处理时间',
+    create_time   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_complaint_order (order_id) COMMENT '一个订单只能投诉一次'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='用户投诉';
