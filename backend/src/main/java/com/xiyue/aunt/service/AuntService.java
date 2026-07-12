@@ -10,6 +10,9 @@ import com.xiyue.aunt.mapper.AuntMapper;
 import com.xiyue.common.exception.BusinessException;
 import com.xiyue.common.result.PageResponse;
 import com.xiyue.common.result.ResultCode;
+import com.xiyue.order.entity.ServiceOrder;
+import com.xiyue.order.enums.OrderStatus;
+import com.xiyue.order.mapper.ServiceOrderMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +43,7 @@ import java.util.List;
 public class AuntService {
 
     private final AuntMapper auntMapper;
+    private final ServiceOrderMapper orderMapper;
 
     // ===== 用户端 =====
 
@@ -185,14 +189,27 @@ public class AuntService {
     /**
      * 管理员逻辑删除阿姨（@TableLogic 自动 update deleted=1）。
      *
-     * <p>逻辑删除不检查历史订单（ADR-015）：仅标记 deleted=1，记录保留，历史订单快照仍可查询。
-     * 物理删除未提供接口；如需物理删除应先检查 service_order 是否存在 aunt_id 关联，
-     * 存在历史订单则禁止物理删除（规范 §4 管理员职责）。
+     * <p>逻辑删除前检查进行中订单（待服务/服务中/待确认）：存在则拒绝删除，
+     * 避免阿姨被删除后 @TableLogic 过滤导致后续 start/complete 接口报错、订单卡死。
+     * 历史已完成/已取消订单不受影响（快照已保存）。
      */
     public void deleteByAdmin(Long id) {
         Aunt aunt = auntMapper.selectById(id);
         if (aunt == null) {
             throw new BusinessException(ResultCode.NOT_FOUND, "阿姨不存在");
+        }
+        // 检查进行中订单（待服务2/服务中3/待确认4），存在则拒绝
+        Long activeCount = orderMapper.selectCount(
+            new LambdaQueryWrapper<ServiceOrder>()
+                .eq(ServiceOrder::getAuntId, id)
+                .in(ServiceOrder::getStatus,
+                    OrderStatus.PENDING_SERVICE.getCode(),
+                    OrderStatus.IN_SERVICE.getCode(),
+                    OrderStatus.PENDING_CONFIRM.getCode())
+        );
+        if (activeCount != null && activeCount > 0) {
+            throw new BusinessException(ResultCode.BUSINESS_ERROR,
+                "该阿姨有进行中订单（待服务/服务中/待确认），无法删除，请待订单完成后再操作");
         }
         auntMapper.deleteById(id);
         log.info("管理员逻辑删除阿姨（id={}）", id);

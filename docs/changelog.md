@@ -5,6 +5,22 @@
 
 ---
 
+## [0.7.1] — 2026-07-13
+
+### Fixed
+
+- **前端无限重定向循环（T-011，根因）**：`/` 路径无路由定义，通配符 `/:pathMatch(.*)*` redirect `/` 导致 `pushWithRedirect` 无限递归（Maximum call stack size exceeded）。修复：加 `{ path: '/', redirect: '/login' }` + 通配符 redirect 改 `/login`
+- router 守卫 Pinia 时序依赖：改用 localStorage 直接读取，`isLoggedIn` 校验 role 有效性
+- index.html 加 localStorage 自动清理（token 存在但 role 无效时清除）+ window.onerror 错误捕获
+- 后端 review 修复（16 文件）：OrderNoGenerator CAS 防时钟回拨、AuntMapper 原子评分更新（@Update SQL）、grabList 校验阿姨状态、cancel 档期释放去 oldStatus 依赖、DTO 加 @Size/@Pattern/@DecimalMin 校验、JWT 注释修正、日志降级 info
+
+### Verified
+
+- 前端：Vite 重启后访问 / → redirect /login → 登录页正常显示，无无限重定向
+- 后端：编译通过，review 修复涉及事务/并发/校验加固
+
+---
+
 ## [0.7.0] — 2026-07-13
 
 ### Added

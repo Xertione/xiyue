@@ -1,6 +1,7 @@
 package com.xiyue.aunt.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -23,6 +24,7 @@ public class AuntUpdateRequest {
     private String avatar;
 
     @Schema(description = "标价（指定阿姨模式按此价计算）")
+    @DecimalMin(value = "0.01", message = "标价至少 0.01 元")
     private BigDecimal price;
 
     @Schema(description = "技能标签（逗号分隔）")

@@ -61,10 +61,14 @@ public enum OrderStatus {
     }
 
     /**
-     * 判断是否已支付（待抢单及之后的状态均已支付，待支付未支付）。
-     * 用于取消时判断是否需要记录模拟退款。
+     * 判断取消时是否需要记录模拟退款。
+     *
+     * <p>已支付且未取消的订单（待抢单/待服务等）取消时需记录退款；
+     * 待支付(0)未支付不需退款；已取消(7)不应再到达取消流程。
+     *
+     * @return true 需要记录模拟退款；false 不需要
      */
-    public static boolean isPaid(int code) {
+    public static boolean needsRefund(int code) {
         return code != PENDING_PAY.code && code != CANCELLED.code;
     }
 }

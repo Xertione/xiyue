@@ -1,5 +1,5 @@
 -- ============================================================
--- 息悦生活家政平台 - 数据库建表脚本（阶段 1）
+-- 息悦生活家政平台 - 数据库建表脚本（阶段 1-4）
 -- 幂等：全部使用 CREATE TABLE IF NOT EXISTS，可重复执行。
 -- 由 Spring Boot spring.sql.init 在应用启动时自动执行。
 -- ============================================================
@@ -129,5 +129,9 @@ CREATE TABLE IF NOT EXISTS complaint (
     create_time   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id),
-    UNIQUE KEY uk_complaint_order (order_id) COMMENT '一个订单只能投诉一次'
+    UNIQUE KEY uk_complaint_order (order_id) COMMENT '一个订单只能投诉一次',
+    KEY idx_status_create (status, create_time) COMMENT '管理员投诉列表按状态筛选+时间排序'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='用户投诉';
+
+-- 已有数据库补索引（CREATE TABLE IF NOT EXISTS 不会为已存在的表加索引）：
+-- ALTER TABLE complaint ADD INDEX idx_status_create (status, create_time);

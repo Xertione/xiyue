@@ -5,6 +5,7 @@ import com.xiyue.common.result.ResultCode;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
@@ -12,6 +13,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
@@ -28,9 +30,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
     public Result<Void> handleAccessDenied(AccessDeniedException e) {
-        // @PreAuthorize 拒绝（Controller 方法层抛出）在此处理为 403；
-        // Filter 层的无权限由 RestAccessDeniedHandler 处理。
+        // @PreAuthorize 拒绝（Controller 方法层抛出）在此处理为 HTTP 403；
+        // Filter 层的无权限由 RestAccessDeniedHandler 返回 HTTP 403，两套机制 HTTP 状态码一致。
         log.warn("无权限访问: {}", e.getMessage());
         return Result.error(ResultCode.FORBIDDEN);
     }

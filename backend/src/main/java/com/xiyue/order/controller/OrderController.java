@@ -112,7 +112,8 @@ public class OrderController {
     public Result<PageResponse<GrabListItem>> grabList(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long size) {
-        return Result.success(orderService.grabList(page, size));
+        Long auntUserId = securityUserContext.getCurrentUserId();
+        return Result.success(orderService.grabList(auntUserId, page, size));
     }
 
     @Operation(summary = "阿姨抢单")

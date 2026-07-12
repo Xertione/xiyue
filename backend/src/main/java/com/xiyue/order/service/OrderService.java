@@ -84,7 +84,6 @@ public class OrderService {
         }
 
         ServiceOrder order = new ServiceOrder();
-        order.setOrderNo(orderNoGenerator.generate());
         order.setUserId(userId);
         order.setServiceDate(req.getServiceDate());
         order.setStartHour(req.getStartHour());
@@ -94,7 +93,21 @@ public class OrderService {
         order.setAddress(req.getAddress());
         order.setAmount(req.getAmount());
         order.setStatus(OrderStatus.PENDING_PAY.getCode());
-        orderMapper.insert(order);
+
+        // 订单号冲突重试（同毫秒 1/900 概率，唯一索引兜底，重试保证用户体验）
+        for (int attempt = 0; attempt < 3; attempt++) {
+            order.setOrderNo(orderNoGenerator.generate());
+            try {
+                orderMapper.insert(order);
+                break;
+            } catch (DuplicateKeyException e) {
+                if (attempt == 2) {
+                    throw new BusinessException(ResultCode.BUSINESS_ERROR, "订单创建失败，请稍后重试");
+                }
+                log.warn("订单号冲突，重试（attempt={}）", attempt + 1);
+            }
+        }
+
         log.info("创建订单（userId={}, orderNo={}, amount={}）", userId, order.getOrderNo(), order.getAmount());
         return toDetail(order);
     }
@@ -209,7 +222,7 @@ public class OrderService {
         }
 
         // 已支付订单（待抢单/待服务）记录模拟退款
-        if (OrderStatus.isPaid(oldStatus)) {
+        if (OrderStatus.needsRefund(oldStatus)) {
             String refundNo = mockPaymentService.generateRefundNo();
             orderMapper.update(null,
                 new LambdaUpdateWrapper<ServiceOrder>()
@@ -221,12 +234,12 @@ public class OrderService {
             log.info("模拟退款（orderNo={}, refundNo={}）", order.getOrderNo(), refundNo);
         }
 
-        // 待服务订单已锁档期，释放档期（待支付/待抢单无档期，无需释放）
-        if (oldStatus == OrderStatus.PENDING_SERVICE.getCode()) {
-            int deleted = slotMapper.delete(
-                new LambdaQueryWrapper<AuntBookingSlot>()
-                    .eq(AuntBookingSlot::getOrderId, orderId)
-            );
+        // 释放档期（不依赖 oldStatus：待支付/待抢单无档期记录，删除 0 条无害；待服务有档期则释放）
+        int deleted = slotMapper.delete(
+            new LambdaQueryWrapper<AuntBookingSlot>()
+                .eq(AuntBookingSlot::getOrderId, orderId)
+        );
+        if (deleted > 0) {
             log.info("释放档期（orderNo={}, 删除{}条占用记录）", order.getOrderNo(), deleted);
         }
 
@@ -238,8 +251,25 @@ public class OrderService {
 
     /**
      * 抢单大厅：待抢单订单列表（规范 §4 阿姨角色）。
+     *
+     * <p>前置校验阿姨状态：休息/下架/禁用的阿姨查看抢单大厅无意义，返回空列表。
+     * 抢单操作时仍会二次校验（{@link #grab}），保证并发安全。
      */
-    public PageResponse<GrabListItem> grabList(long page, long size) {
+    public PageResponse<GrabListItem> grabList(Long auntUserId, long page, long size) {
+        // 校验阿姨状态：非可用/休息状态返回空列表
+        Aunt aunt = auntMapper.selectOne(
+            new LambdaQueryWrapper<Aunt>().eq(Aunt::getUserId, auntUserId)
+        );
+        if (aunt == null
+            || !AuntAdminStatus.AVAILABLE.name().equals(aunt.getAdminStatus())
+            || !AuntAcceptStatus.AVAILABLE.name().equals(aunt.getAcceptStatus())) {
+            return PageResponse.<GrabListItem>builder()
+                .records(List.of())
+                .total(0L)
+                .page(Math.max(page, 1))
+                .size(Math.min(Math.max(size, 1), 100))
+                .build();
+        }
         page = Math.max(page, 1);
         size = Math.min(Math.max(size, 1), 100);
         Page<ServiceOrder> pageParam = new Page<>(page, size);
@@ -302,11 +332,14 @@ public class OrderService {
         // 档期预检（友好提示，最终保障靠唯一索引）
         checkSlotAvailable(aunt.getId(), order.getServiceDate(), order.getStartHour(), order.getDurationHours());
 
+        // 阿姨姓名兜底：注册时 name 可能未填，用"阿姨{id}"兜底避免快照为 null
+        String auntName = aunt.getName() != null ? aunt.getName() : "阿姨" + aunt.getId();
+
         // 条件更新订单归属（防并发：同一订单只能被一位阿姨抢到）
         int rows = orderMapper.update(null,
             new LambdaUpdateWrapper<ServiceOrder>()
                 .set(ServiceOrder::getAuntId, aunt.getId())
-                .set(ServiceOrder::getAuntName, aunt.getName())
+                .set(ServiceOrder::getAuntName, auntName)
                 .set(ServiceOrder::getAuntAvatar, aunt.getAvatar())
                 .set(ServiceOrder::getStatus, OrderStatus.PENDING_SERVICE.getCode())
                 .eq(ServiceOrder::getId, orderId)
@@ -502,10 +535,13 @@ public class OrderService {
 
         checkSlotAvailable(aunt.getId(), order.getServiceDate(), order.getStartHour(), order.getDurationHours());
 
+        // 阿姨姓名兜底：注册时 name 可能未填，用"阿姨{id}"兜底避免快照为 null
+        String auntName = aunt.getName() != null ? aunt.getName() : "阿姨" + aunt.getId();
+
         int rows = orderMapper.update(null,
             new LambdaUpdateWrapper<ServiceOrder>()
                 .set(ServiceOrder::getAuntId, aunt.getId())
-                .set(ServiceOrder::getAuntName, aunt.getName())
+                .set(ServiceOrder::getAuntName, auntName)
                 .set(ServiceOrder::getAuntAvatar, aunt.getAvatar())
                 .set(ServiceOrder::getStatus, OrderStatus.PENDING_SERVICE.getCode())
                 .eq(ServiceOrder::getId, orderId)

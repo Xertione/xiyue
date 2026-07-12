@@ -15,7 +15,9 @@ import java.util.Date;
 /**
  * JWT 工具：签发与解析。
  *
- * <p>算法 HS256（对称密钥）。Token claims：
+ * <p>算法：JJWT 根据 {@code Keys.hmacShaKeyFor(bytes)} 的密钥长度自动选择
+ * HS256（≥32 字节）/ HS384（≥48 字节）/ HS512（≥64 字节），密钥越长越安全。
+ * 生产环境建议使用 ≥64 字节的密钥以启用 HS512。Token claims：
  * <ul>
  *   <li>sub   用户 ID（字符串形式）</li>
  *   <li>phone 手机号</li>
@@ -28,7 +30,8 @@ import java.util.Date;
  * <ul>
  *   <li>密钥至少 32 字节，启动时校验，不达标直接抛异常阻止启动；</li>
  *   <li>密钥不输出到日志；</li>
- *   <li>日志不输出完整 Token。</li>
+ *   <li>日志不输出完整 Token；</li>
+ *   <li>算法由密钥长度决定（见类注释），非显式指定。</li>
  * </ul>
  */
 @Slf4j

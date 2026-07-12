@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "xiyue.jwt")
 public class JwtProperties {
 
-    /** JWT 签名密钥（HS256），至少 32 字节，密码学安全随机值 */
+    /** JWT 签名密钥，至少 32 字节，密码学安全随机值（算法由密钥长度自动选择） */
     private String secret;
 
     /** Token 有效期（毫秒），默认 7 天 */

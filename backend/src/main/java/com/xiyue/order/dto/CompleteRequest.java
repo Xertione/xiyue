@@ -1,6 +1,7 @@
 package com.xiyue.order.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
@@ -11,5 +12,6 @@ public class CompleteRequest {
 
     /** 服务完成演示图片 URL */
     @NotBlank(message = "完成图片URL不能为空")
+    @Pattern(regexp = "^https?://\\S+$", message = "完成图片URL格式不正确")
     private String imageUrl;
 }

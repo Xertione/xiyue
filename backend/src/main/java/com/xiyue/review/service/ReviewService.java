@@ -1,7 +1,6 @@
 package com.xiyue.review.service;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.xiyue.aunt.entity.Aunt;
 import com.xiyue.aunt.mapper.AuntMapper;
 import com.xiyue.common.exception.BusinessException;
 import com.xiyue.common.result.ResultCode;
@@ -17,9 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 /**
  * 评价服务（阶段 4）。
@@ -107,26 +103,19 @@ public class ReviewService {
     }
 
     /**
-     * 更新阿姨评分（加权平均）与服务次数。
+     * 原子更新阿姨评分（加权平均）与服务次数。
      *
-     * <p>公式：newRating = (oldRating * oldCount + newRating) / (oldCount + 1)，保留 1 位小数。
+     * <p>使用单条 SQL 原子更新（{@link com.xiyue.aunt.mapper.AuntMapper#updateRatingAndCount}），
+     * 公式：newRating = ROUND((oldRating * oldCount + newRating) / (oldCount + 1), 1)。
+     * 避免读-算-写的并发丢失更新问题（ADR-020 优化）。
      */
     private void updateAuntRating(Long auntId, Integer newRating) {
-        Aunt aunt = auntMapper.selectById(auntId);
-        if (aunt == null) {
-            log.warn("评价更新阿姨评分时阿姨不存在（auntId={}），跳过", auntId);
-            return;
+        int rows = auntMapper.updateRatingAndCount(auntId, newRating);
+        if (rows != 1) {
+            log.warn("评价更新阿姨评分时阿姨不存在或已删除（auntId={}），跳过", auntId);
+        } else {
+            log.info("阿姨评分原子更新成功（auntId={}, newRating={}）", auntId, newRating);
         }
-        int oldCount = aunt.getServiceCount();
-        BigDecimal oldRating = aunt.getRating() != null ? aunt.getRating() : BigDecimal.ZERO;
-        BigDecimal newAvg = oldRating.multiply(BigDecimal.valueOf(oldCount))
-            .add(BigDecimal.valueOf(newRating))
-            .divide(BigDecimal.valueOf(oldCount + 1), 1, RoundingMode.HALF_UP);
-        aunt.setRating(newAvg);
-        aunt.setServiceCount(oldCount + 1);
-        auntMapper.updateById(aunt);
-        log.info("阿姨评分更新（auntId={}, oldRating={}, oldCount={}, newRating={}, newAvg={}）",
-            auntId, oldRating, oldCount, newRating, newAvg);
     }
 
     private ReviewResponse toResponse(Review review) {

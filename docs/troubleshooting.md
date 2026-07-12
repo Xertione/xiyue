@@ -132,3 +132,22 @@
 - **解决方案：** 在 `GlobalExceptionHandler` 加 `@ExceptionHandler(AccessDeniedException.class)` 返回 `Result.error(ResultCode.FORBIDDEN)`（body code=403）。
 - **验证：** 修复后越权请求返回 `{"code":403,"message":"无权限访问"}` ✓
 - **规则固化：** 见 ADR-016——Controller 层权限异常由 GlobalExceptionHandler 处理，Filter 层由 RestAccessDeniedHandler 处理，两套分工。
+
+---
+
+## T-011：前端 Vue Router 无限重定向导致白屏（Maximum call stack size exceeded）
+
+- **日期：** 2026-07-13
+- **现象：** 前端页面白屏，浏览器控制台报 `Uncaught RangeError: Maximum call stack size exceeded`，错误堆栈在 `vue-router.js` 的 `pushWithRedirect` 无限递归。
+- **排查过程：**
+  1. 检查所有模块编译状态：Vite + 21 个路由引用模块全部返回 200，无编译错误；
+  2. 检查依赖预构建：Vant/ElementPlus/icons 默认导出正常，CSS 存在；
+  3. 怀疑 router 守卫 `useAuthStore()` 的 Pinia 时序问题 → 改为直接读 localStorage（未解决）；
+  4. 怀疑 localStorage 有无效数据（token 存在但 role 为空）→ 加自动清理脚本（未解决）；
+  5. **发现真正根因**：`/` 路径没有路由定义，访问 `/` 时匹配通配符 `/:pathMatch(.*)*`，其 `redirect: '/'` 指向 `/` 本身 → `/` 又匹配通配符 → redirect `/` → `resolve` 阶段无限循环（守卫 `beforeEach` 根本没机会执行）。
+- **原因：** Vue Router 4 通配符路由 `redirect: '/'`，当 `/` 本身没有显式路由定义时，`resolve` 阶段会无限匹配通配符并重定向，导致 `pushWithRedirect` 递归溢出。这与守卫逻辑、Pinia、localStorage 无关。
+- **解决方案：**
+  1. 添加 `{ path: '/', redirect: '/login' }` 路由，使 `/` 有显式定义；
+  2. 通配符 `/:pathMatch(.*)*` 的 redirect 从 `'/'` 改为 `'/login'`。
+- **验证：** 修复后访问 `/` → redirect `/login` → 守卫检查（未登录）→ `next()` → 登录页正常显示 ✓
+- **规则固化：** Vue Router 4 通配符路由的 `redirect` 目标**必须是已显式定义的路由路径**，不能 redirect 到会再次匹配通配符的路径（如 `/` 未定义时 redirect `/`）。排查路由问题时，先确认 `resolve` 阶段是否正常，再查守卫。

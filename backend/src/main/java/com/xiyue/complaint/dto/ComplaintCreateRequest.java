@@ -2,6 +2,7 @@ package com.xiyue.complaint.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -14,5 +15,6 @@ public class ComplaintCreateRequest {
     private Long orderId;
 
     @NotBlank(message = "投诉原因不能为空")
+    @Size(max = 500, message = "投诉原因不超过 500 字")
     private String reason;
 }
