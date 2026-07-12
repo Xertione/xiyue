@@ -69,7 +69,7 @@ Docker Compose
 - 所有受保护接口通过 Spring Security FilterChain 拦截
 - JWT Token 从 Authorization: Bearer <token> 获取
 - 角色信息编码在 JWT claims 中，但签发角色必须来自数据库
-- 公开注册角色仅允许 USER/AUNT，ADMIN 只能由初始化 SQL 创建
+- 公开注册角色仅允许 USER/AUNT，ADMIN 由应用启动时初始化（AdminAccountInitializer，ADR-013）
 - 用户/阿姨/管理员接口通过 @PreAuthorize 或自定义注解隔离
 - 资源归属校验在 Service 层手动完成
 - 抢单使用订单状态条件更新保证唯一归属，档期唯一索引只保证时段不冲突

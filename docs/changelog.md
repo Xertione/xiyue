@@ -5,6 +5,22 @@
 
 ---
 
+## [0.7.0] — 2026-07-13
+
+### Added
+
+- 前端工程：Vue 3 + Vite + TS + Pinia + Vue Router + Vant 4 + Element Plus + axios
+- 基础设施：API 封装（JWT 拦截器 + 401 跳登录）+ auth store + 路由守卫（角色分发）+ format 工具
+- 登录/注册页（验证码倒计时、角色选择）+ 用户端5页 + 阿姨端3页 + 管理后台3页
+- 设计：teal-600 品牌色全站一致性（design-taste-frontend skill 原则：颜色 lock、反 AI-tell、完整状态）
+- 部署：frontend/backend Dockerfile + nginx.conf + docker-compose 四服务
+
+### Verified
+
+- dev 联调通过（Vite 5173 + API 代理 /api→8080 + 模块加载）
+
+---
+
 ## [0.6.0] — 2026-07-13
 
 ### Added

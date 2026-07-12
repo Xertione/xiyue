@@ -220,7 +220,7 @@
 - **后果：**
   - aunt 表加 `deleted TINYINT` 字段，Aunt 实体加 `@TableLogic`；
   - `deleteById` 自动变为 `update deleted=1`，`selectPage/selectList/selectById` 自动过滤 `deleted=1`；
-  - 存在历史订单禁止物理删除的检查留待阶段3（service_order 表建立后补充，逻辑删除本身不禁止）。
+  - 逻辑删除前检查进行中订单（待服务/服务中/待确认），存在则拒绝删除，避免阿姨被删后订单卡死（2026-07-13 review 后补充）。
 
 ---
 
@@ -236,9 +236,9 @@
 - **决策：** 在 GlobalExceptionHandler 加 `@ExceptionHandler(AccessDeniedException.class)` 返回 403。
 - **原因：** Controller 层的权限异常由 @ControllerAdvice 统一处理，与 Filter 层的 RestAccessDeniedHandler 分工清晰，互不冲突。
 - **后果：**
-  - @PreAuthorize 拒绝 → GlobalExceptionHandler 返回 body code=403（HTTP 200 + body code，符合项目统一响应约定）；
+  - @PreAuthorize 拒绝 → GlobalExceptionHandler 返回 HTTP 403 + body code=403（@ResponseStatus 统一 HTTP 状态码，2026-07-13 review 后修正）；
   - Filter 层无权限（如 URL 级别）仍由 RestAccessDeniedHandler 返回 HTTP 403；
-  - 两套机制并存，分别覆盖方法级和 URL 级权限控制。
+  - 两套机制并存，HTTP 状态码一致（均为 403），分别覆盖方法级和 URL 级权限控制。
 
 ---
 
@@ -292,14 +292,14 @@
 
 ## ADR-020：评价评分采用读-算-写
 
-- **状态：** Accepted
+- **状态：** Deprecated（已被 ADR-021 替换）
 - **日期：** 2026-07-13
 - **背景：** 评价后需更新阿姨平均评分与服务次数。公式：newRating = (oldRating * oldCount + newRating) / (oldCount + 1)。
 - **候选方案：**
   1. 读-算-写：先查 aunt 当前 rating/count，计算新值，再 updateById
   2. SQL 原子更新：`UPDATE aunt SET rating=(rating*service_count+?)/(service_count+1), service_count=service_count+1 WHERE id=?`
   3. Redis 缓存评分，异步落库
-- **决策：** 采用方案 1（读-算-写）。
+- **决策：** 原采用方案 1（读-算-写），2026-07-13 review 发现并发丢失更新风险后改为方案 2（见 ADR-021）。
 - **原因：**
   - MVP 并发量小，同一阿姨同时被评价的概率极低，读-算-写的竞态风险可接受；
   - 方案 1 代码可读性最高，便于学习理解评分计算逻辑；
@@ -308,3 +308,54 @@
 - **后果：**
   - 极端并发下阿姨评分可能有微小偏差（MVP 可接受）；
   - 后续业务量增长可改方案 2 或加乐观锁。
+- **废弃原因：** 代码 review 发现两个用户同时评价同一阿姨（不同订单）会丢失评分更新，service_count 也会少加。已改用 ADR-021 的 SQL 原子更新方案。
+
+---
+
+## ADR-021：评价评分改用 SQL 原子更新
+
+- **状态：** Accepted
+- **日期：** 2026-07-13
+- **背景：** ADR-020 的读-算-写方案在并发下会丢失更新（两个用户同时评价同一阿姨的不同订单，后写覆盖先写，rating 和 service_count 都少算）。
+- **决策：** 改用方案 2（SQL 原子更新）。在 `AuntMapper` 加自定义 `@Update` 方法 `updateRatingAndCount`，单条 SQL 原子完成评分加权平均和服务次数 +1。
+- **原因：**
+  - 单条 SQL 的 UPDATE 是数据库行锁级别的原子操作，天然避免读-算-写的竞态；
+  - MySQL `ROUND((rating * service_count + ?) / (service_count + 1), 1)` 精度可控，与 Java BigDecimal HALF_UP 结果一致；
+  - 改动小：只需一个 Mapper 自定义方法 + Service 调用处替换，无需改表结构或加乐观锁版本号。
+- **后果：**
+  - 评分更新并发安全，不再丢失；
+  - `ReviewService.updateAuntRating` 不再需要手动读-算-写和 BigDecimal 计算；
+  - newRating 参数为 Integer（1-5 校验过），SQL 拼接安全。
+
+---
+
+## ADR-022：MVP 裁剪阿姨按日期/小时块设置不可接单
+
+- **状态：** Accepted
+- **日期：** 2026-07-13
+- **背景：** 规范 §4 阿姨角色列出"设置具体日期和小时块不可接单"，但当前仅实现了整体接单状态切换（AVAILABLE/RESTING），未实现按日期/小时块的细粒度不可接单设置。
+- **决策：** MVP 不实现按日期/小时块设置不可接单，仅保留整体接单状态切换。规范 §4 已标注裁剪。
+- **原因：**
+  - 按日期/小时块设置不可接单需要新增接口 + 前端日历交互，工作量较大；
+  - MVP 核心目标是订单闭环和状态机，整体接单状态已能满足抢单流程；
+  - `aunt_booking_slot` 表设计上可支撑此功能（档期占用记录），后续扩展不需改表结构。
+- **后果：**
+  - 阿姨只能整体切换可抢单/休息，不能按日期/小时块精细控制；
+  - 后续可在阶段 5+ 补充接口 `PATCH /api/aunts/me/slots/unavailable`，复用 aunt_booking_slot 表。
+
+---
+
+## ADR-023：MVP 裁剪指定阿姨订单模式
+
+- **状态：** Accepted
+- **日期：** 2026-07-13
+- **背景：** 规范 §5.2 提到"指定阿姨订单（辅助）：按阿姨当前标价计算"，但当前仅实现了抢单模式（用户发布订单 → 阿姨抢单），未实现用户直接指定某阿姨下单的模式。
+- **决策：** MVP 不实现指定阿姨订单模式，仅保留抢单模式。规范 §5.2 已标注裁剪。
+- **原因：**
+  - 指定阿姨模式需要新增创建订单接口参数（auntId）+ 按阿姨标价计算金额 + 指派逻辑，与抢单流程分支较多；
+  - MVP 核心是抢单事务和并发安全，指定阿姨模式是辅助功能，优先级低；
+  - aunt 表的 price 字段已保留，后续扩展不需改表结构。
+- **后果：**
+  - 用户只能发布订单等待抢单，不能直接指定阿姨；
+  - aunt.price 字段当前仅用于列表展示和排序，未参与订单计算；
+  - 后续可在阶段 5+ 补充指定阿姨下单接口，CreateOrderRequest 加 auntId 字段。

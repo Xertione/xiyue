@@ -37,7 +37,7 @@
 | `/api/admin/aunts` | GET | ADMIN | 管理员查看全量阿姨 |
 | `/api/admin/aunts/{id}` | GET | ADMIN | 管理员查看阿姨详情 |
 | `/api/admin/aunts/{id}` | PUT | ADMIN | 编辑已注册阿姨资料 |
-| `/api/admin/aunts/{id}` | DELETE | ADMIN | 逻辑删除/注销阿姨（存在历史订单时禁止物理删除） |
+| `/api/admin/aunts/{id}` | DELETE | ADMIN | 逻辑删除阿姨（存在进行中订单时拒绝，历史数据保留） |
 | `/api/admin/aunts/{id}/status` | PATCH | ADMIN | 上下架/禁用阿姨 |
 | `/api/aunts/me/status` | PATCH | AUNT | 阿姨设置个人接单状态 |
 
@@ -49,7 +49,7 @@
 |---|---|---|---|
 | `/api/orders` | POST | USER | 创建订单 |
 | `/api/orders` | GET | USER | 用户订单列表 |
-| `/api/orders/{id}` | GET | USER | 订单详情 |
+| `/api/orders/{id}` | GET | USER/AUNT | 订单详情（USER 查自己下单的，AUNT 查自己接的） |
 | `/api/orders/{id}/pay` | POST | USER | 模拟支付 |
 | `/api/orders/{id}/cancel` | POST | USER | 取消待支付/待抢单/待服务订单，按需模拟退款并释放档期 |
 | `/api/orders/grab-list` | GET | AUNT | 抢单大厅（待抢单订单列表） |
