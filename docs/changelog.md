@@ -28,10 +28,19 @@
 ### Verified
 
 - 全流程 curl 验证 17 项全部通过：注册(USER/AUNT/ADMIN拒绝/重复拒绝/错误码拒绝)、密码登录、验证码登录、profile、401(无token/错误token)、找回密码、ADMIN 启动初始化登录、数据库表/索引/数据、Redis 验证码一次性
+- Review 后补充验证：改密码后旧 token 立即失效(401)、新 token 有效(200)；sms-code 60 秒频率限制生效
+
+### Fixed
+
+- AdminAccountInitializer 手机号冲突致启动崩溃：加 phone 占用预检 + try-catch `DuplicateKeyException`（review 发现）
+- 验证码消费顺序不当：register/loginByCode/resetPassword 调整为先做无副作用校验（角色白名单/手机号存在性），最后 verifyCode（review 发现）
+- 改密码后旧 JWT 不失效：JWT claims 加密码哈希前 16 位（pwdSig），JwtAuthenticationFilter 校验比对数据库当前哈希，改密码后旧 token 立即失效（ADR-014）
+- sms-code 无频率限制：Redis limit key + 配置化间隔 `xiyue.sms.resend-interval-seconds`（默认 60 秒）
 
 ### Decision
 
 - ADR-013：ADMIN 账号由应用启动初始化（密码走环境变量，非 init.sql 明文），符合 ADR-012 敏感配置仅环境变量注入
+- ADR-014：JWT 密码哈希签名使改密码后旧 token 失效
 
 ---
 

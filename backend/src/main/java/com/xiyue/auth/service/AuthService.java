@@ -152,8 +152,8 @@ public class AuthService {
     }
 
     private LoginResponse buildLoginResponse(SysUser user) {
-        // 角色取自数据库，不信任客户端
-        String token = jwtUtil.generateToken(user.getId(), user.getPhone(), user.getRole());
+        // 角色取自数据库，不信任客户端；pwdSig 取密码哈希，改密码后旧 token 失效
+        String token = jwtUtil.generateToken(user.getId(), user.getPhone(), user.getRole(), user.getPassword());
         log.info("登录成功（角色 {}，手机号尾号 {}）", user.getRole(), maskPhone(user.getPhone()));
         return LoginResponse.builder()
             .token(token)

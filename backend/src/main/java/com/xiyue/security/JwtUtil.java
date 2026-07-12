@@ -57,18 +57,26 @@ public class JwtUtil {
     /**
      * 签发 JWT。
      *
-     * @param userId 用户 ID
-     * @param phone  手机号
-     * @param role   角色（来自数据库）
+     * <p>claims 中包含 pwdSig（密码哈希前 16 位），用于改密码后使旧 token 失效：
+     * 改密码后 BCrypt 重新生成 salt，password 哈希变化，旧 token 的 pwdSig 不再匹配，
+     * {@link JwtAuthenticationFilter} 校验失败，旧 token 立即失效。
+     *
+     * @param userId       用户 ID
+     * @param phone        手机号
+     * @param role         角色（来自数据库）
+     * @param passwordHash BCrypt 密码哈希（取前 16 位作为签名）
      * @return JWT 字符串
      */
-    public String generateToken(Long userId, String phone, String role) {
+    public String generateToken(Long userId, String phone, String role, String passwordHash) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.getExpirationMs());
+        String pwdSig = (passwordHash != null && passwordHash.length() >= 16)
+            ? passwordHash.substring(0, 16) : "";
         return Jwts.builder()
             .subject(String.valueOf(userId))
             .claim("phone", phone)
             .claim("role", role)
+            .claim("pwdSig", pwdSig)
             .issuedAt(now)
             .expiration(expiration)
             .signWith(key)
