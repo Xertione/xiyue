@@ -42,8 +42,10 @@ const router = createRouter({
 function getAuthState() {
   const token = localStorage.getItem('xiyue_token') || ''
   const role = localStorage.getItem('xiyue_role') || ''
+  const isValidRole = role === 'USER' || role === 'AUNT' || role === 'ADMIN'
   const homePath = role === 'ADMIN' ? '/admin/aunts' : role === 'AUNT' ? '/aunt/grab-list' : '/user/aunts'
-  return { isLoggedIn: !!token, role, homePath }
+  // token 存在但 role 无效时视为未登录，避免角色路径不匹配导致无限重定向
+  return { isLoggedIn: !!token && isValidRole, role, homePath }
 }
 
 router.beforeEach((to, _from, next) => {
