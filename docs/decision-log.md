@@ -202,3 +202,40 @@
   - 每次受保护请求查一次 sys_user 比对 pwdSig（MVP 可接受，后续可 Redis 缓存降低 DB 压力）；
   - JWT claims 含密码哈希前 16 位（BCrypt 哈希片段，含 salt 前缀，非明文密码，安全性可接受）；
   - 改密码后旧 token 立即失效，新登录获取的新 token 有效。
+
+---
+
+## ADR-015：aunt 逻辑删除用 MyBatis-Plus @TableLogic
+
+- **状态：** Accepted
+- **日期：** 2026-07-13
+- **背景：** 规范要求"阿姨删除默认采用逻辑删除，存在历史订单时禁止物理删除"。需要选择逻辑删除实现方式。
+- **候选方案：**
+  1. 手动 update deleted 字段（每次查询手动加 deleted=0 条件）
+  2. MyBatis-Plus @TableLogic 注解（查询自动过滤 deleted=1，删除自动 update deleted=1）
+- **决策：** 采用方案 2。
+- **原因：**
+  - 方案 1 每个查询都要手动加条件，容易遗漏，导致已删除阿姨泄露到列表；
+  - 方案 2 框架自动处理，查询自动追加 `deleted=0`，删除自动 `update deleted=1`，全局配置 `logic-delete-field/value`，一致且不易出错。
+- **后果：**
+  - aunt 表加 `deleted TINYINT` 字段，Aunt 实体加 `@TableLogic`；
+  - `deleteById` 自动变为 `update deleted=1`，`selectPage/selectList/selectById` 自动过滤 `deleted=1`；
+  - 存在历史订单禁止物理删除的检查留待阶段3（service_order 表建立后补充，逻辑删除本身不禁止）。
+
+---
+
+## ADR-016：@PreAuthorize 异常由 GlobalExceptionHandler 处理为 403
+
+- **状态：** Accepted
+- **日期：** 2026-07-13
+- **背景：** 阶段2启用 `@EnableMethodSecurity` + `@PreAuthorize` 角色隔离后，越权请求返回 500 而非 403。
+- **原因分析：**
+  - `@PreAuthorize` 在 Controller 方法层（AOP 拦截）抛 `AccessDeniedException`；
+  - 该异常向上抛到 `DispatcherServlet`，被 `@RestControllerAdvice`（GlobalExceptionHandler）的 `@ExceptionHandler(Exception.class)` 捕获，返回 500；
+  - Security 的 `RestAccessDeniedHandler` 只处理 Filter 层异常，捕获不到 Controller 层的 `AccessDeniedException`。
+- **决策：** 在 GlobalExceptionHandler 加 `@ExceptionHandler(AccessDeniedException.class)` 返回 403。
+- **原因：** Controller 层的权限异常由 @ControllerAdvice 统一处理，与 Filter 层的 RestAccessDeniedHandler 分工清晰，互不冲突。
+- **后果：**
+  - @PreAuthorize 拒绝 → GlobalExceptionHandler 返回 body code=403（HTTP 200 + body code，符合项目统一响应约定）；
+  - Filter 层无权限（如 URL 级别）仍由 RestAccessDeniedHandler 返回 HTTP 403；
+  - 两套机制并存，分别覆盖方法级和 URL 级权限控制。

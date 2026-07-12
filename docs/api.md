@@ -35,6 +35,7 @@
 | `/api/aunts` | GET | USER | 阿姨列表（分页、筛选） |
 | `/api/aunts/{id}` | GET | USER | 阿姨详情 |
 | `/api/admin/aunts` | GET | ADMIN | 管理员查看全量阿姨 |
+| `/api/admin/aunts/{id}` | GET | ADMIN | 管理员查看阿姨详情 |
 | `/api/admin/aunts/{id}` | PUT | ADMIN | 编辑已注册阿姨资料 |
 | `/api/admin/aunts/{id}` | DELETE | ADMIN | 逻辑删除/注销阿姨（存在历史订单时禁止物理删除） |
 | `/api/admin/aunts/{id}/status` | PATCH | ADMIN | 上下架/禁用阿姨 |

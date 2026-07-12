@@ -2,6 +2,7 @@ package com.xiyue.aunt.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -64,6 +65,10 @@ public class Aunt implements Serializable {
 
     /** 接单状态：AVAILABLE / RESTING */
     private String acceptStatus;
+
+    /** 逻辑删除：0=未删 1=已删（MyBatis-Plus @TableLogic 自动处理） */
+    @TableLogic
+    private Integer deleted;
 
     /** 创建时间 */
     private LocalDateTime createTime;

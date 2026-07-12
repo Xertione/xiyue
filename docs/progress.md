@@ -6,8 +6,8 @@
 
 ## 当前阶段
 
-阶段：阶段 1 — 认证与注册  
-状态：**已完成**（建表 + 注册/登录/找回密码/JWT/Security 全流程验证通过）  
+阶段：阶段 2 — 阿姨管理  
+状态：**已完成**（管理员编辑/上下架/禁用/逻辑删除 + 用户端列表筛选详情 + 阿姨自设接单状态 + @PreAuthorize 角色隔离，全流程验证通过）  
 最后更新时间：2026-07-13
 
 ---
@@ -16,77 +16,57 @@
 
 ### 阶段 0：项目基础设施（2026-07-12）
 
-- [x] 文档体系初始化（docs/ 核心文件 + README）
-- [x] 待确认事项全部确认（P/U/S/A/O/C/T/D 系列）
-- [x] MVP 范围定稿 + Agent 指令稿正式版 + 开发时间计划
-- [x] 本地开发环境就绪（JDK 17 + Maven 3.9.16 + Docker + MySQL + Redis）
-- [x] Docker Compose 配置补全（healthcheck / 资源限制 / 日志滚动 / 127.0.0.1 / .env / 固定 name:xiyue）
-- [x] 配置收口：库名统一 xiyue_platform + .env.example + .env
-- [x] Spring Boot 3 后端骨架（pom + 启动类 + application.yml + 分包）
-- [x] MyBatis-Plus 集成 + 统一响应体 Result + 全局异常处理
-- [x] Knife4j 文档 + 健康检查 GET /api/health（真探测 MySQL + Redis）
+- [x] 文档体系 + 本地环境 + Docker Compose + 配置收口
+- [x] Spring Boot 3 后端骨架 + MyBatis-Plus + Result/异常 + Knife4j + 健康检查
 
 ### 阶段 1：认证与注册（2026-07-13）
 
-- [x] 数据库建表：`sys_user`（phone 唯一 + role + BCrypt 密码）+ `aunt`（user_id 唯一 + 双状态字段），schema.sql 幂等，spring.sql.init 启动自动执行
-- [x] 实体与 Mapper：SysUser / Aunt / RoleEnum / SysUserMapper / AuntMapper
-- [x] ADMIN 账号初始化：AdminAccountInitializer（ApplicationRunner），启动时检查无 ADMIN 则用 `ADMIN_INIT_PASSWORD` 环境变量 BCrypt 加密后插入（密码不入 SQL/源码/Git，见 ADR-013）
-- [x] JWT 工具：JwtProperties + JwtUtil（HS512，密钥至少 32 字节启动校验，sub=userId + phone/role claims）
-- [x] Redis 验证码服务：SmsCodeService（固定验证码 123456，Key `sms:code:{phone}` TTL 5 分钟，校验通过一次性删除）
-- [x] 认证 DTO：SmsCode/Register/PasswordLogin/CodeLogin/ResetPassword 请求 + Login/Profile 响应（含参数校验注解）
-- [x] 认证 Service：AuthService（注册事务含阿姨同步建 aunt、密码登录、验证码登录、找回密码、获取 profile；角色白名单禁 ADMIN；角色取自数据库不信客户端）
-- [x] 认证 Controller：AuthController（6 个接口：sms-code/register/login/password/login/code/reset-password/profile）
-- [x] Spring Security JWT 集成：JwtAuthenticationFilter + RestAuthenticationEntryPoint(401) + RestAccessDeniedHandler(403) + LoginUser + SecurityUserContext
-- [x] SecurityConfig 收紧：STATELESS + 禁 CSRF + 公开接口 permitAll + 其余 authenticated() + JWT Filter
-- [x] 配置补充：application.yml 加 xiyue.jwt/xiyue.admin + spring.sql.init；application-local.yml 补本地 JWT 密钥与 ADMIN 密码（不入库）
-- [x] 全流程接口验证通过（见下方验证清单）
+- [x] sys_user + aunt 建表 + ADMIN 初始化（ADR-013）
+- [x] 注册/密码登录/验证码登录/找回密码 + JWT（HS512 + pwdSig 密码哈希签名，ADR-014）
+- [x] Spring Security JWT Filter + 权限收紧 + sms-code 频率限制
+- [x] Review 修复：AdminAccountInitializer 手机号冲突 + 验证码消费顺序
+
+### 阶段 2：阿姨管理（2026-07-13）
+
+- [x] 数据库变更：aunt 表加 deleted 字段（TINYINT，@TableLogic 逻辑删除）+ schema.sql 同步
+- [x] 状态枚举：AuntAdminStatus（AVAILABLE/OFF_SHELF/DISABLED）+ AuntAcceptStatus（AVAILABLE/RESTING）
+- [x] MyBatis-Plus 分页插件配置（PaginationInnerInterceptor）
+- [x] DTO：AuntListItem/AuntDetail/AuntUpdateRequest/AuntStatusUpdateRequest/AuntAcceptStatusRequest + 通用 PageResponse
+- [x] AuntService：用户端列表(筛选+排序+分页)/详情(仅AVAILABLE)、管理员全量列表/详情/编辑/状态/逻辑删除、阿姨自设接单状态
+- [x] Controller：AuntController（用户端 GET /api/aunts + /{id}，AUNT PATCH /me/status）+ AdminAuntController（管理员 5 接口）
+- [x] Security @EnableMethodSecurity + @PreAuthorize 角色隔离（USER/AUNT/ADMIN）
+- [x] Bug 修复：@PreAuthorize 抛 AccessDeniedException 被 GlobalExceptionHandler 捕获返回 403（原 500，见 T-010）
+- [x] 全流程验证通过
 
 ---
 
-## 阶段 1 验证清单（2026-07-13 curl 全通过）
+## 阶段 2 验证清单（2026-07-13 curl 全通过）
 
 | # | 场景 | 预期 | 结果 |
 |---:|---|---|---|
-| 1 | 发送验证码 | 200 | ✅ |
-| 2 | 注册 USER | 200 | ✅ |
-| 3 | 注册 AUNT | 200 + 同事务建 aunt | ✅ |
-| 4 | 注册 ADMIN | 403 角色白名单拒绝 | ✅ |
-| 5 | 重复手机号注册 | 409 已注册 | ✅ |
-| 6 | 错误验证码注册 | 1005 验证码错误 | ✅ |
-| 7 | 密码登录 | 200 + token | ✅ |
-| 8 | 错误密码登录 | 401 | ✅ |
-| 9 | 验证码登录 | 200 + token | ✅ |
-| 10 | profile 带 token | 200 用户信息 | ✅ |
-| 11 | profile 无 token | HTTP 401 | ✅ |
-| 12 | profile 错误 token | HTTP 401 | ✅ |
-| 13 | 找回密码 | 200 | ✅ |
-| 14 | 旧密码登录失败 / 新密码登录成功 | 401 / 200 | ✅ |
-| 15 | ADMIN 账号登录（启动初始化） | 200 + token role=ADMIN | ✅ |
-| 16 | 数据库：表/索引/数据 | sys_user+aunt 表、uk_phone/uk_user_id、3 账号+aunt 记录 | ✅ |
-| 17 | Redis 验证码一次性 | 校验后删除 | ✅ |
-
----
-
-## 环境就绪详情（2026-07-12 确认）
-
-| 工具 | 版本 | 说明 |
-| --- | --- | --- |
-| JDK | 17.0.8 LTS | `C:\Program Files\Java\jdk-17`，JAVA_HOME 已指向 |
-| Maven | 3.9.16 | bash 用 mvn17 wrapper（`/c/Users/Jodio/tools/mvn17.sh`） |
-| Docker | 29.6.1 + Compose v5.2.0 | daemon 运行中 |
-| MySQL | 8.0.46 | 容器 xiyue-mysql，端口 127.0.0.1:3307→3306，库 xiyue_platform，utf8mb4 |
-| Redis | 7.0-alpine | 容器 xiyue-redis，端口 127.0.0.1:6380→6379（本机 memurai 占 6379，见 T-005） |
-| Node | 22.22.2 + npm 10.9.7 | 前端用 |
-| Git | 2.54.0 | — |
-
-注意：`platform encoding: GBK`，项目强制 UTF-8（见 AGENTS.md §1）。
+| 1 | 注册 2 个 AUNT | 200 | ✅ |
+| 2 | 管理员全量列表 | 3 条 | ✅ |
+| 3 | 管理员编辑阿姨（英文 body） | 200 + 详情更新 | ✅ |
+| 4 | 管理员编辑阿姨（中文 body，python 测） | 200 + 中文存储正确 | ✅ |
+| 5 | 用户端列表仅显示 AVAILABLE | OFF_SHELF 不显示 | ✅ |
+| 6 | 用户端筛选 skillTag | 命中匹配 | ✅ |
+| 7 | 用户端筛选 minPrice/minRating | 正确过滤 | ✅ |
+| 8 | 用户端详情 AVAILABLE | 200 | ✅ |
+| 9 | 用户端详情 OFF_SHELF | 404 不存在或已下架 | ✅ |
+| 10 | AUNT 设接单状态 RESTING | 200 + 详情确认 | ✅ |
+| 11 | 越权 USER 访问 admin 接口 | 403 | ✅ |
+| 12 | 越权 AUNT 访问 USER 接口 | 403 | ✅ |
+| 13 | 越权 USER 访问 AUNT 接口 | 403 | ✅ |
+| 14 | 逻辑删除阿姨 | 200 + 列表不再显示 | ✅ |
+| 15 | 禁用阿姨 DISABLED | 用户端列表不显示 | ✅ |
+| 16 | 数据库 deleted 字段 | 逻辑删除=1，其余=0 | ✅ |
 
 ---
 
 ## 当前正在做
 
 ```text
-阶段 1 已完成，准备进入阶段 2：阿姨管理。
+阶段 2 已完成，准备进入阶段 3：订单与抢单。
 ```
 
 ---
@@ -99,32 +79,36 @@
 
 ---
 
-## 下一步计划（阶段 2：阿姨管理）
+## 下一步计划（阶段 3：订单与抢单）
 
-1. `aunt` 运营字段编辑接口（管理员编辑姓名/头像/标价/技能标签/介绍）
-2. 管理员上下架/禁用阿姨（admin_status：AVAILABLE/OFF_SHELF/DISABLED）
-3. 管理员逻辑删除阿姨（存在历史订单禁止物理删除）
-4. 阿姨设置个人接单状态（accept_status：AVAILABLE/RESTING）
-5. 用户端阿姨列表（分页、按星级/价格/技能标签筛选）
-6. 用户端阿姨详情
-7. 角色细粒度权限：@PreAuthorize 按 USER/AUNT/ADMIN 隔离接口
+1. service_order 表（含地址快照、价格快照）+ aunt_booking_slot 表（小时块 + 唯一索引）
+2. 用户创建订单（选日期、整点开始时间、时长、填地址）→ 待支付
+3. 模拟支付 → 待抢单
+4. 抢单大厅（待抢单订单列表）
+5. 阿姨抢单（事务 + 订单条件更新 + 档期唯一索引）
+6. 管理员指派阿姨（兜底）
+7. 用户订单列表/详情、阿姨订单列表/详情
+8. 用户取消（待支付/待抢单/待服务，含模拟退款 + 档期释放）
+9. 并发抢单测试
+10. 补充：阿姨逻辑删除时检查历史订单（service_order 已建后）
 
 ---
 
 ## 最近一次可运行状态
 
 ```text
-阶段 1 认证与注册已可启动验证：
+阶段 2 阿姨管理已可启动验证：
   cd backend && /c/Users/Jodio/tools/mvn17.sh spring-boot:run -Dspring-boot.run.arguments=--server.port=8080
 
 启动后：
-- GET /api/health → {"code":200,"data":{"mysql":"up","redis":"up","status":"up"}}
-- ADMIN 账号自动初始化（手机号 13800000000，密码=ADMIN_INIT_PASSWORD）
-- 认证接口可用：/api/auth/{sms-code,register,login/password,login/code,reset-password,profile}
-- Knife4j 文档 /doc.html（HTTP 200）
-
-测试账号（本地，密码见 .env / application-local.yml，不入库）：
-- ADMIN: 13800000000 / <ADMIN_INIT_PASSWORD 环境变量值>
-- USER : 13800000001 / <注册时设置的密码>
-- AUNT : 13800000002 / <注册时设置的密码>
+- GET /api/health → 200 up
+- 阿姨模块接口可用：
+  - 用户端：GET /api/aunts（列表+筛选）、GET /api/aunts/{id}（详情）
+  - 阿姨自己：PATCH /api/aunts/me/status（设接单状态）
+  - 管理员：GET/PUT/DELETE/PATCH /api/admin/aunts/**
+- @PreAuthorize 角色隔离生效（越权返回 403）
+- 测试账号（本地，密码见 .env / application-local.yml）：
+  - ADMIN: 13800000000 / <ADMIN_INIT_PASSWORD>
+  - USER : 13800000001 / <注册密码>
+  - AUNT : 13800000002 / <注册密码>
 ```

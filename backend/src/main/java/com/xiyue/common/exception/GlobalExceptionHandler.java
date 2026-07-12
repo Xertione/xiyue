@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,6 +25,14 @@ public class GlobalExceptionHandler {
     public Result<Void> handleBusiness(BusinessException e) {
         log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public Result<Void> handleAccessDenied(AccessDeniedException e) {
+        // @PreAuthorize 拒绝（Controller 方法层抛出）在此处理为 403；
+        // Filter 层的无权限由 RestAccessDeniedHandler 处理。
+        log.warn("无权限访问: {}", e.getMessage());
+        return Result.error(ResultCode.FORBIDDEN);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

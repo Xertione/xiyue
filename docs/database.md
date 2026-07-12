@@ -64,6 +64,7 @@
 | intro | TEXT | NULL | 个人介绍 |
 | admin_status | VARCHAR(20) | NOT NULL DEFAULT 'AVAILABLE' | 管理状态：AVAILABLE / OFF_SHELF / DISABLED |
 | accept_status | VARCHAR(20) | NOT NULL DEFAULT 'AVAILABLE' | 接单状态：AVAILABLE / RESTING |
+| deleted | TINYINT | NOT NULL DEFAULT 0 | 逻辑删除：0=未删 1=已删（MyBatis-Plus @TableLogic，ADR-015） |
 | create_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP | 创建时间 |
 | update_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
 

@@ -5,6 +5,38 @@
 
 ---
 
+## [0.4.0] — 2026-07-13
+
+### Added
+
+- 数据库变更：aunt 表加 `deleted` 字段（TINYINT，逻辑删除）+ schema.sql 同步
+- 状态枚举：`AuntAdminStatus`（AVAILABLE/OFF_SHELF/DISABLED）+ `AuntAcceptStatus`（AVAILABLE/RESTING），含 isValid 校验
+- MyBatis-Plus 分页插件配置（`MybatisPlusConfig` + `PaginationInnerInterceptor`）+ 全局逻辑删除配置（logic-delete-field/value）
+- 阿姨 DTO：`AuntListItem`/`AuntDetail`/`AuntUpdateRequest`/`AuntStatusUpdateRequest`/`AuntAcceptStatusRequest` + 通用 `PageResponse<T>`
+- `AuntService`：用户端列表(筛选+排序+分页)/详情(仅AVAILABLE)、管理员全量列表/详情/编辑运营字段/上下架禁用/逻辑删除、阿姨按 user_id 自设接单状态
+- `AuntController`（用户端 GET /api/aunts + /{id}，AUNT PATCH /me/status）+ `AdminAuntController`（管理员 GET/PUT/DELETE/PATCH /api/admin/aunts/**）
+- `SecurityConfig` 加 `@EnableMethodSecurity`，全部阿姨接口加 `@PreAuthorize` 角色隔离（USER/AUNT/ADMIN）
+
+### Fixed
+
+- `@PreAuthorize` 抛 `AccessDeniedException` 被 `GlobalExceptionHandler` 的 `@ExceptionHandler(Exception.class)` 捕获返回 500 → 加 `@ExceptionHandler(AccessDeniedException.class)` 返回 403（见 T-010）
+
+### Verified
+
+- 全流程 curl 16 项通过：注册阿姨、管理员列表/编辑(英文+中文)/上下架/禁用/逻辑删除、用户端列表仅AVAILABLE/筛选(星级/价格/技能标签)/详情、AUNT 设接单状态、越权 403 ×3、数据库 deleted 字段
+
+### Decision
+
+- ADR-015：aunt 逻辑删除用 MyBatis-Plus @TableLogic（deleted 字段，查询自动过滤，删除自动 update）
+- ADR-016：@PreAuthorize 的 AccessDeniedException 在 Controller 层抛出，由 GlobalExceptionHandler 处理为 403（Filter 层仍由 RestAccessDeniedHandler 处理）
+
+### Known
+
+- curl 在 Git Bash 下发送含中文的 JSON body 会 400（curl 编码问题，非接口缺陷；前端 axios 发 UTF-8 正常，python 测试正常，见 T-009）
+- 阿姨逻辑删除时检查历史订单禁止物理删除留待阶段3（service_order 表建立后）
+
+---
+
 ## [0.3.0] — 2026-07-13
 
 ### Added

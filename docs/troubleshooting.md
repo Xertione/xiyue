@@ -102,3 +102,33 @@
   1. 优先用接口返回验证（接口走 Spring Boot UTF-8 响应）；
   2. 或 `docker exec xiyue-mysql mysql --default-character-set=utf8mb4 -uroot -p<MYSQL_ROOT_PASSWORD> -e "..."` 显式指定客户端字符集。
 - **教训：** 看到 mysql 命令行中文乱码时，先通过接口或 `--default-character-set=utf8mb4` 复核，不要直接判定数据损坏。
+
+---
+
+## T-009：curl 在 Git Bash 下发送含中文的 JSON body 返回 400
+
+- **日期：** 2026-07-13
+- **现象：** 阶段2验证时，`curl -d '{"name":"张阿姨",...}'` 含中文的 PUT 请求返回 `{"code":400,"message":"请求体格式错误或为空"}`，但全英文 body 的 PATCH 请求成功。
+- **排查：**
+  1. 用 python `urllib.request` 发送相同中文 JSON（`.encode('utf-8')`）→ 200 成功，详情接口确认中文存储正确；
+  2. 英文 body 的 curl 请求 → 200 成功；
+  3. 排除接口缺陷，定位为 curl 在 Git Bash（Windows）下对中文 body 的编码处理问题。
+- **原因：** Windows 的 curl 在 Git Bash 下可能按系统编码（GBK）而非 UTF-8 编码中文 body，服务器按 UTF-8 解析 JSON 失败，抛 `HttpMessageNotReadableException` → 400。
+- **解决方案：** 这不是接口缺陷，无需修复。需要测试含中文的请求时：
+  1. 用 python `urllib.request` + `.encode('utf-8')` 发送（推荐）；
+  2. 或前端 axios（浏览器自动 UTF-8）。
+- **教训：** curl 中文 body 400 时，先用 python/前端验证排除接口缺陷，不要误判为代码问题。
+
+---
+
+## T-010：@PreAuthorize 越权返回 500 而非 403
+
+- **日期：** 2026-07-13
+- **现象：** 阶段2启用 `@EnableMethodSecurity` + `@PreAuthorize` 后，USER 访问 admin 接口返回 `{"code":500,"message":"服务器内部错误"}` 而非 403。
+- **排查：**
+  1. 查日志：`@PreAuthorize` 拒绝抛 `AccessDeniedException`，被 `GlobalExceptionHandler` 的 `@ExceptionHandler(Exception.class)` 捕获返回 500；
+  2. Security 的 `RestAccessDeniedHandler` 未触发——它只处理 Filter 层异常，捕获不到 Controller 方法层的 `AccessDeniedException`。
+- **原因：** `@PreAuthorize` AOP 拦截在 Controller 方法执行前抛异常，向上抛到 DispatcherServlet，被 `@RestControllerAdvice` 捕获；Filter 层的 `RestAccessDeniedHandler` 在更外层，无法拦截方法级异常。
+- **解决方案：** 在 `GlobalExceptionHandler` 加 `@ExceptionHandler(AccessDeniedException.class)` 返回 `Result.error(ResultCode.FORBIDDEN)`（body code=403）。
+- **验证：** 修复后越权请求返回 `{"code":403,"message":"无权限访问"}` ✓
+- **规则固化：** 见 ADR-016——Controller 层权限异常由 GlobalExceptionHandler 处理，Filter 层由 RestAccessDeniedHandler 处理，两套分工。
