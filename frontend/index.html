@@ -7,6 +7,21 @@
 </head>
 <body>
   <div id="app"></div>
+  <script>
+    // 错误捕获：白屏时显示具体 JS 错误（诊断用）
+    window.onerror = function(msg, url, line, col, err) {
+      var app = document.getElementById('app');
+      if (app && !app.innerHTML) {
+        app.innerHTML = '<pre style="padding:20px;color:#dc2626;font-size:13px;white-space:pre-wrap;word-break:break-all;font-family:monospace">JS错误: ' + msg + '\n' + (err && err.stack || '') + '</pre>';
+      }
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+      var app = document.getElementById('app');
+      if (app && !app.innerHTML) {
+        app.innerHTML = '<pre style="padding:20px;color:#dc2626;font-size:13px;white-space:pre-wrap;word-break:break-all;font-family:monospace">异步错误: ' + (e.reason && e.reason.message || e.reason) + '\n' + (e.reason && e.reason.stack || '') + '</pre>';
+      }
+    });
+  </script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

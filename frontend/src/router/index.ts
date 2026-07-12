@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -39,17 +38,25 @@ const router = createRouter({
   ]
 })
 
+// 直接读 localStorage，避免 Pinia 在 router 守卫中的时序依赖问题
+function getAuthState() {
+  const token = localStorage.getItem('xiyue_token') || ''
+  const role = localStorage.getItem('xiyue_role') || ''
+  const homePath = role === 'ADMIN' ? '/admin/aunts' : role === 'AUNT' ? '/aunt/grab-list' : '/user/aunts'
+  return { isLoggedIn: !!token, role, homePath }
+}
+
 router.beforeEach((to, _from, next) => {
-  const auth = useAuthStore()
+  const auth = getAuthState()
   if (to.path === '/login' || to.path === '/register') {
-    if (auth.isLoggedIn) return next(auth.homePath())
+    if (auth.isLoggedIn) return next(auth.homePath)
     return next()
   }
   if (!auth.isLoggedIn) return next('/login')
-  if (to.path === '/') return next(auth.homePath())
-  if (to.path.startsWith('/admin') && auth.role !== 'ADMIN') return next(auth.homePath())
-  if (to.path.startsWith('/user') && auth.role !== 'USER') return next(auth.homePath())
-  if (to.path.startsWith('/aunt') && auth.role !== 'AUNT') return next(auth.homePath())
+  if (to.path === '/') return next(auth.homePath)
+  if (to.path.startsWith('/admin') && auth.role !== 'ADMIN') return next(auth.homePath)
+  if (to.path.startsWith('/user') && auth.role !== 'USER') return next(auth.homePath)
+  if (to.path.startsWith('/aunt') && auth.role !== 'AUNT') return next(auth.homePath)
   next()
 })
 
