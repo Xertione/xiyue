@@ -5,6 +5,28 @@
 
 ---
 
+## [0.5.0] — 2026-07-13
+
+### Added
+
+- 数据表：`service_order`（订单含地址/价格/阿姨快照+支付退款字段）+ `aunt_booking_slot`（小时块档期+联合唯一索引 `uk_aunt_date_hour`）
+- `OrderStatus` 枚举（9状态机 0-8，含 `isCancelable`/`isPaid`）+ `ServiceOrder`/`AuntBookingSlot` 实体 + Mapper
+- 订单 DTO（CreateOrderRequest/OrderListItem/OrderDetail/GrabListItem/AssignRequest/PayResponse）+ `OrderNoGenerator`（SO+时间戳+随机）
+- `MockPaymentService`（模拟支付/退款流水号，规范 §7.4）
+- `OrderService`：创建订单(校验不跨天+快照)、模拟支付(条件更新防并发)、用户列表/详情(校验归属)、抢单事务(条件更新+档期预检+唯一索引兜底+阿姨快照)、管理员指派(兜底)、抢单大厅、阿姨订单列表/详情、取消(条件更新+模拟退款+档期释放)
+- `OrderController`（8接口）+ `AdminOrderController`（2接口）
+
+### Verified
+
+- curl 全流程通过：创建+支付+抢单+档期2条(9,10)、重复抢单1002、档期冲突1003、并发抢单唯一归属(1成功1失败)、管理员指派、取消待服务退款字段齐全+档期释放0条、越权403、非法状态1001
+
+### Decision
+
+- ADR-017：抢单校验阿姨接单状态（休息不能抢），管理员指派不校验接单状态（兜底强制）
+- ADR-018：待支付/待抢单订单不占档期，抢单/指派成功才锁档期，取消释放档期
+
+---
+
 ## [0.4.1] — 2026-07-13
 
 ### Fixed

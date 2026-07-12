@@ -42,3 +42,57 @@ CREATE TABLE IF NOT EXISTS aunt (
     PRIMARY KEY (id),
     UNIQUE KEY uk_user_id (user_id) COMMENT '一个用户只能有一条阿姨资料'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='阿姨资料（个人信息+运营状态）';
+
+-- ------------------------------------------------------------
+-- service_order：预约订单（含地址快照、价格快照、阿姨快照、支付与退款字段）
+-- 阶段 3 建表。订单状态机 9 态（ADR-003），金额 DECIMAL(10,2) + Java BigDecimal（规范 §6）。
+-- 待支付/待抢单不占档期；抢单/指派成功才锁档期；取消释放档期（规范 §5.3、§7.6）。
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS service_order (
+    id              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    order_no        VARCHAR(32)   NOT NULL COMMENT '订单号（全局唯一）',
+    user_id         BIGINT        NOT NULL COMMENT '下单用户 sys_user.id',
+    aunt_id         BIGINT        DEFAULT NULL COMMENT '抢单/指派阿姨 aunt.id（待支付/待抢单为 NULL）',
+    service_date    DATE          NOT NULL COMMENT '服务日期',
+    start_hour      TINYINT       NOT NULL COMMENT '开始小时（0-23 整点）',
+    duration_hours  TINYINT       NOT NULL COMMENT '服务时长（小时，>=1）',
+    contact_name    VARCHAR(50)   NOT NULL COMMENT '联系人姓名（快照）',
+    contact_phone   VARCHAR(11)   NOT NULL COMMENT '联系电话（快照）',
+    address         VARCHAR(255)  NOT NULL COMMENT '服务地址（快照）',
+    amount          DECIMAL(10,2) NOT NULL COMMENT '订单金额（价格快照）',
+    aunt_name       VARCHAR(50)   DEFAULT NULL COMMENT '阿姨姓名（抢单/指派时快照）',
+    aunt_avatar     VARCHAR(255)  DEFAULT NULL COMMENT '阿姨头像（抢单/指派时快照）',
+    status          INT           NOT NULL DEFAULT 0 COMMENT '订单状态：0待支付 1待抢单 2待服务 3服务中 4待确认 5待评价 6已完成 7已取消 8投诉中',
+    pay_no          VARCHAR(64)   DEFAULT NULL COMMENT '模拟支付流水号',
+    pay_time        DATETIME      DEFAULT NULL COMMENT '支付时间',
+    pay_method      VARCHAR(20)   DEFAULT NULL COMMENT '支付方式（MOCK）',
+    refund_status   VARCHAR(20)   DEFAULT NULL COMMENT '退款状态：REFUNDED 模拟退款成功',
+    refund_no       VARCHAR(64)   DEFAULT NULL COMMENT '模拟退款流水号',
+    refund_time     DATETIME      DEFAULT NULL COMMENT '模拟退款时间',
+    cancel_time     DATETIME      DEFAULT NULL COMMENT '取消时间',
+    create_time     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_order_no (order_no) COMMENT '订单号唯一索引',
+    KEY idx_user_status (user_id, status, create_time) COMMENT '用户订单列表',
+    KEY idx_aunt_status (aunt_id, status, service_date) COMMENT '阿姨订单列表',
+    KEY idx_status_date (status, service_date) COMMENT '抢单大厅与管理员筛选'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='预约订单（含地址/价格/阿姨快照）';
+
+-- ------------------------------------------------------------
+-- aunt_booking_slot：阿姨小时块档期占用记录
+-- 联合唯一索引 uk_aunt_date_hour 保障同一阿姨同一日期同一小时块只能被一单占用（ADR-002、ADR-010）。
+-- 抢单/指派成功时插入；取消时删除释放。待支付/待抢单不插入。
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS aunt_booking_slot (
+    id           BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    aunt_id      BIGINT   NOT NULL COMMENT '占用档期的阿姨 aunt.id',
+    order_id     BIGINT   NOT NULL COMMENT '关联订单 service_order.id',
+    service_date DATE     NOT NULL COMMENT '服务日期',
+    hour_slot    TINYINT  NOT NULL COMMENT '小时块（0-23，整点）',
+    create_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_aunt_date_hour (aunt_id, service_date, hour_slot) COMMENT '同一阿姨同一日期同一小时块唯一',
+    KEY idx_order (order_id) COMMENT '按订单释放档期'
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='阿姨小时块档期占用记录';

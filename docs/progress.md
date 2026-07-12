@@ -6,8 +6,8 @@
 
 ## 当前阶段
 
-阶段：阶段 2 — 阿姨管理  
-状态：**已完成**（管理员编辑/上下架/禁用/逻辑删除 + 用户端列表筛选详情 + 阿姨自设接单状态 + @PreAuthorize 角色隔离，全流程验证通过）  
+阶段：阶段 3 — 订单与抢单  
+状态：**已完成**（建表+创建订单+模拟支付+抢单事务+并发抢单+管理员指派+取消退款档期释放，全流程验证通过）  
 最后更新时间：2026-07-13
 
 ---
@@ -36,44 +36,48 @@
 - [x] Controller：AuntController（用户端 GET /api/aunts + /{id}，AUNT PATCH /me/status）+ AdminAuntController（管理员 5 接口）
 - [x] Security @EnableMethodSecurity + @PreAuthorize 角色隔离（USER/AUNT/ADMIN）
 - [x] Bug 修复：@PreAuthorize 抛 AccessDeniedException 被 GlobalExceptionHandler 捕获返回 403（原 500，见 T-010）
-- [x] 全流程验证通过
+- [x] 全流程验证通过 + 巩固测试（分页size上限+稳定排序）
+
+### 阶段 3：订单与抢单（2026-07-13）
+
+- [x] 数据表：service_order（订单含地址/价格/阿姨快照+支付退款字段）+ aunt_booking_slot（小时块档期+联合唯一索引 uk_aunt_date_hour）
+- [x] OrderStatus 枚举（9状态机 0-8，含 isCancelable/isPaid）+ ServiceOrder/AuntBookingSlot 实体 + Mapper
+- [x] 订单 DTO（CreateOrderRequest/OrderListItem/OrderDetail/GrabListItem/AssignRequest/PayResponse）+ OrderNoGenerator（SO+时间戳+随机）
+- [x] MockPaymentService（模拟支付/退款流水号，规范 §7.4）
+- [x] OrderService：创建订单(校验不跨天+快照)、模拟支付(条件更新防并发)、用户列表/详情(校验归属)
+- [x] 抢单事务（条件更新订单归属 + 档期预检 + 唯一索引兜底 + 阿姨快照，ADR-010/017）
+- [x] 管理员指派（兜底，不校验接单状态，校验管理状态可用）
+- [x] 抢单大厅 + 阿姨订单列表/详情
+- [x] 用户取消（条件更新防并发 + 已支付模拟退款 + 待服务释放档期，规范 §7.6）
+- [x] OrderController（8接口：创建/列表/详情/支付/取消/抢单大厅/抢单/我的订单）+ AdminOrderController（2接口：全量列表/指派）
+- [x] AuntService.deleteByAdmin 注释更新（逻辑删除不检查历史订单，物理删除未提供接口）
 
 ---
 
-## 阶段 2 验证清单（2026-07-13 curl 全通过）
+## 阶段 3 验证清单（2026-07-13 curl 全通过）
 
 | # | 场景 | 预期 | 结果 |
 |---:|---|---|---|
-| 1 | 注册 2 个 AUNT | 200 | ✅ |
-| 2 | 管理员全量列表 | 3 条 | ✅ |
-| 3 | 管理员编辑阿姨（英文 body） | 200 + 详情更新 | ✅ |
-| 4 | 管理员编辑阿姨（中文 body，python 测） | 200 + 中文存储正确 | ✅ |
-| 5 | 用户端列表仅显示 AVAILABLE | OFF_SHELF 不显示 | ✅ |
-| 6 | 用户端筛选 skillTag | 命中匹配 | ✅ |
-| 7 | 用户端筛选 minPrice/minRating | 正确过滤 | ✅ |
-| 8 | 用户端详情 AVAILABLE | 200 | ✅ |
-| 9 | 用户端详情 OFF_SHELF | 404 不存在或已下架 | ✅ |
-| 10 | AUNT 设接单状态 RESTING | 200 + 详情确认 | ✅ |
-| 11 | 越权 USER 访问 admin 接口 | 403 | ✅ |
-| 12 | 越权 AUNT 访问 USER 接口 | 403 | ✅ |
-| 13 | 越权 USER 访问 AUNT 接口 | 403 | ✅ |
-| 14 | 逻辑删除阿姨 | 200 + 列表不再显示 | ✅ |
-| 15 | 禁用阿姨 DISABLED | 用户端列表不显示 | ✅ |
-| 16 | 数据库 deleted 字段 | 逻辑删除=1，其余=0 | ✅ |
+| 1 | 创建订单（地址/价格快照） | 200 + status=0待支付 | ✅ |
+| 2 | 模拟支付（条件更新） | 200 + status=1待抢单 + payNo | ✅ |
+| 3 | 抢单大厅 | 包含待抢单订单 | ✅ |
+| 4 | 阿姨抢单（事务+档期2条） | 200 + auntId填 + 档期9,10 | ✅ |
+| 5 | 重复抢单 | 1002 已被抢走 | ✅ |
+| 6 | 档期冲突（同AUNT同时段） | 1003 该时段已被预约 | ✅ |
+| 7 | 并发抢单（2 AUNT 同时抢1单） | 仅1成功，另1返回1002 | ✅ |
+| 8 | 管理员指派阿姨 | 200 + 订单进入待服务 | ✅ |
+| 9 | 取消待服务订单 | 200 + 退款字段齐全 + 档期释放0条 | ✅ |
+| 10 | 越权 USER 访问抢单大厅 | 403 | ✅ |
+| 11 | 非法状态 取消已取消订单 | 1001 状态不允许 | ✅ |
+| 12 | 阿姨订单列表/用户订单详情 | 归属校验正确 | ✅ |
 
 ---
 
 ## 当前正在做
 
 ```text
-阶段 2 已完成 + 巩固测试通过，准备进入阶段 3：订单与抢单。
+阶段 3 已完成，准备进入阶段 4：服务履约与评价。
 ```
-
-### 阶段2后巩固测试与优化（2026-07-13）
-
-- 轻量测试覆盖阶段1+2 关键修复点：越权 403、sms-code 频率限制、改密码旧 token 失效、用户端列表仅 AVAILABLE，**全部通过**。
-- 健壮性优化：分页 size 上限 100（防拖垮 DB）、列表排序加二级 `orderByDesc(id)`（保证 rating 相同时排序稳定）。
-- 无新 bug。
 
 ---
 
@@ -85,34 +89,30 @@
 
 ---
 
-## 下一步计划（阶段 3：订单与抢单）
+## 下一步计划（阶段 4：服务履约与评价）
 
-1. service_order 表（含地址快照、价格快照）+ aunt_booking_slot 表（小时块 + 唯一索引）
-2. 用户创建订单（选日期、整点开始时间、时长、填地址）→ 待支付
-3. 模拟支付 → 待抢单
-4. 抢单大厅（待抢单订单列表）
-5. 阿姨抢单（事务 + 订单条件更新 + 档期唯一索引）
-6. 管理员指派阿姨（兜底）
-7. 用户订单列表/详情、阿姨订单列表/详情
-8. 用户取消（待支付/待抢单/待服务，含模拟退款 + 档期释放）
-9. 并发抢单测试
-10. 补充：阿姨逻辑删除时检查历史订单（service_order 已建后）
+1. 阿姨开始服务（待服务 → 服务中）
+2. 阿姨提交服务完成（服务中 → 待确认，上传演示图片 URL）
+3. 用户确认服务完成（待确认 → 待评价）
+4. review 表 + 用户评价（评分+文字，待评价 → 已完成，更新阿姨 service_count/rating）
+5. complaint 表 + 用户投诉（待评价 → 投诉中）
+6. 管理员处理投诉（投诉中 → 已完成，不更新阿姨评分）
 
 ---
 
 ## 最近一次可运行状态
 
 ```text
-阶段 2 阿姨管理已可启动验证：
+阶段 3 订单与抢单已可启动验证：
   cd backend && /c/Users/Jodio/tools/mvn17.sh spring-boot:run -Dspring-boot.run.arguments=--server.port=8080
 
 启动后：
 - GET /api/health → 200 up
-- 阿姨模块接口可用：
-  - 用户端：GET /api/aunts（列表+筛选）、GET /api/aunts/{id}（详情）
-  - 阿姨自己：PATCH /api/aunts/me/status（设接单状态）
-  - 管理员：GET/PUT/DELETE/PATCH /api/admin/aunts/**
-- @PreAuthorize 角色隔离生效（越权返回 403）
+- 订单模块接口可用：
+  - 用户：POST /api/orders（创建）、GET /api/orders（列表）、GET /api/orders/{id}（详情）、POST /{id}/pay（支付）、POST /{id}/cancel（取消）
+  - 阿姨：GET /api/orders/grab-list（抢单大厅）、POST /api/orders/{id}/grab（抢单）、GET /api/orders/mine（我的订单）
+  - 管理员：GET /api/admin/orders（全量列表）、POST /api/admin/orders/{id}/assign（指派）
+- 抢单事务 + 档期唯一索引 + 并发安全验证通过
 - 测试账号（本地，密码见 .env / application-local.yml）：
   - ADMIN: 13800000000 / <ADMIN_INIT_PASSWORD>
   - USER : 13800000001 / <注册密码>

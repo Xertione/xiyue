@@ -61,6 +61,9 @@
 | `/api/admin/orders` | GET | ADMIN | 管理员查看全量订单 |
 | `/api/admin/orders/{id}/assign` | POST | ADMIN | 管理员指派阿姨 |
 
+> 阶段3已实现：创建/支付/取消/抢单/指派/列表/详情（共10接口）。
+> `start`/`complete`/`confirm` 留阶段4服务履约实现。
+
 ---
 
 ## 评价模块

@@ -185,8 +185,9 @@ public class AuntService {
     /**
      * 管理员逻辑删除阿姨（@TableLogic 自动 update deleted=1）。
      *
-     * <p>注：存在历史订单禁止物理删除的检查在阶段3 service_order 表建立后补充。
-     * 当前逻辑删除不影响历史数据关联（仅标记 deleted=1，记录保留）。
+     * <p>逻辑删除不检查历史订单（ADR-015）：仅标记 deleted=1，记录保留，历史订单快照仍可查询。
+     * 物理删除未提供接口；如需物理删除应先检查 service_order 是否存在 aunt_id 关联，
+     * 存在历史订单则禁止物理删除（规范 §4 管理员职责）。
      */
     public void deleteByAdmin(Long id) {
         Aunt aunt = auntMapper.selectById(id);

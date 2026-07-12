@@ -18,8 +18,8 @@
 |---|---|---|
 | `sys_user` | 用户/阿姨/管理员账号 | ✅ 已创建（阶段1） |
 | `aunt` | 阿姨资料（个人信息 + 运营状态） | ✅ 已创建（阶段1，运营字段编辑留阶段2） |
-| `service_order` | 预约订单（含地址快照、价格快照） | 🔲 待创建（阶段3） |
-| `aunt_booking_slot` | 阿姨小时块档期占用记录 | 🔲 待创建（阶段3） |
+| `service_order` | 预约订单（含地址快照、价格快照） | ✅ 已创建（阶段3） |
+| `aunt_booking_slot` | 阿姨小时块档期占用记录 | ✅ 已创建（阶段3） |
 | `review` | 用户评价 | 🔲 待创建（阶段4） |
 | `complaint` | 用户投诉 | 🔲 待创建（阶段4） |
 
@@ -73,6 +73,56 @@
 **阶段1范围：** 随阿姨注册事务一并创建记录（name=null，admin_status/accept_status 默认 AVAILABLE，rating=0.0，service_count=0）。运营字段编辑、列表、详情、上下架、逻辑删除接口在阶段2「阿姨管理」实现。
 
 建表脚本：`backend/src/main/resources/db/schema.sql`（幂等 `CREATE TABLE IF NOT EXISTS`，由 `spring.sql.init` 启动自动执行）。
+
+---
+
+### service_order — 预约订单（阶段3已建）
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT | 主键ID |
+| order_no | VARCHAR(32) | NOT NULL, UNIQUE(`uk_order_no`) | 订单号（全局唯一） |
+| user_id | BIGINT | NOT NULL | 下单用户 sys_user.id |
+| aunt_id | BIGINT | NULL | 抢单/指派阿姨 aunt.id（待支付/待抢单为 NULL） |
+| service_date | DATE | NOT NULL | 服务日期 |
+| start_hour | TINYINT | NOT NULL | 开始小时（0-23 整点） |
+| duration_hours | TINYINT | NOT NULL | 服务时长（小时，>=1） |
+| contact_name | VARCHAR(50) | NOT NULL | 联系人姓名（快照） |
+| contact_phone | VARCHAR(11) | NOT NULL | 联系电话（快照） |
+| address | VARCHAR(255) | NOT NULL | 服务地址（快照） |
+| amount | DECIMAL(10,2) | NOT NULL | 订单金额（价格快照） |
+| aunt_name | VARCHAR(50) | NULL | 阿姨姓名（抢单/指派时快照） |
+| aunt_avatar | VARCHAR(255) | NULL | 阿姨头像（抢单/指派时快照） |
+| status | INT | NOT NULL DEFAULT 0 | 订单状态：0-8（见状态枚举） |
+| pay_no | VARCHAR(64) | NULL | 模拟支付流水号 |
+| pay_time | DATETIME | NULL | 支付时间 |
+| pay_method | VARCHAR(20) | NULL | 支付方式（MOCK） |
+| refund_status | VARCHAR(20) | NULL | 退款状态：REFUNDED 模拟退款成功 |
+| refund_no | VARCHAR(64) | NULL | 模拟退款流水号 |
+| refund_time | DATETIME | NULL | 模拟退款时间 |
+| cancel_time | DATETIME | NULL | 取消时间 |
+| create_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| update_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+
+索引：`uk_order_no`(order_no)、`idx_user_status`(user_id,status,create_time)、`idx_aunt_status`(aunt_id,status,service_date)、`idx_status_date`(status,service_date)。
+
+**快照设计（规范 §7.7）：** 创建订单时保存联系人/电话/地址/金额快照；抢单/指派成功时将阿姨姓名、头像写入订单快照。快照不随后续资料变更而变化。
+
+### aunt_booking_slot — 阿姨小时块档期占用记录（阶段3已建）
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT | 主键ID |
+| aunt_id | BIGINT | NOT NULL | 占用档期的阿姨 aunt.id |
+| order_id | BIGINT | NOT NULL | 关联订单 service_order.id |
+| service_date | DATE | NOT NULL | 服务日期 |
+| hour_slot | TINYINT | NOT NULL | 小时块（0-23，整点） |
+| create_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| update_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
+
+索引：`uk_aunt_date_hour`(aunt_id,service_date,hour_slot) 联合唯一索引、`idx_order`(order_id)。
+
+**档期规则（规范 §5.3、ADR-018）：** 待支付/待抢单订单不插入档期；抢单/指派成功才插入（startHour ~ startHour+durationHours-1 各一条）；取消待服务订单时按 order_id 删除释放。同一阿姨同一日期同一小时块唯一由联合唯一索引保障。
 
 ---
 
