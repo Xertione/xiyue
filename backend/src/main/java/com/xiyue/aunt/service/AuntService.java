@@ -60,6 +60,9 @@ public class AuntService {
                                                   BigDecimal maxPrice,
                                                   String skillTag,
                                                   String sort) {
+        // 分页参数防护：page 至少 1，size 限制 1~100 防止拖垮 DB
+        page = Math.max(page, 1);
+        size = Math.min(Math.max(size, 1), 100);
         Page<Aunt> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<Aunt> wrapper = new LambdaQueryWrapper<Aunt>()
             .eq(Aunt::getAdminStatus, AuntAdminStatus.AVAILABLE.name())
@@ -68,10 +71,10 @@ public class AuntService {
             .le(maxPrice != null, Aunt::getPrice, maxPrice)
             .like(StringUtils.hasText(skillTag), Aunt::getSkillTags, skillTag);
         if ("price_asc".equalsIgnoreCase(sort)) {
-            wrapper.orderByAsc(Aunt::getPrice);
+            wrapper.orderByAsc(Aunt::getPrice).orderByDesc(Aunt::getId);
         } else {
-            // 默认按星级降序
-            wrapper.orderByDesc(Aunt::getRating);
+            // 默认按星级降序，星级相同时按 id 降序保证排序稳定
+            wrapper.orderByDesc(Aunt::getRating).orderByDesc(Aunt::getId);
         }
         Page<Aunt> result = auntMapper.selectPage(pageParam, wrapper);
         List<AuntListItem> items = result.getRecords().stream()
@@ -106,6 +109,9 @@ public class AuntService {
      * 管理员全量列表（含所有管理状态，@TableLogic 自动过滤已删除）。
      */
     public PageResponse<AuntListItem> listForAdmin(long page, long size) {
+        // 分页参数防护
+        page = Math.max(page, 1);
+        size = Math.min(Math.max(size, 1), 100);
         Page<Aunt> pageParam = new Page<>(page, size);
         Page<Aunt> result = auntMapper.selectPage(pageParam,
             new LambdaQueryWrapper<Aunt>().orderByDesc(Aunt::getCreateTime));
