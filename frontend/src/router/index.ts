@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/', redirect: '/login' },
     { path: '/login', name: 'login', component: () => import('@/views/Login.vue') },
     { path: '/register', name: 'register', component: () => import('@/views/Register.vue') },
     {
@@ -34,7 +35,7 @@ const router = createRouter({
         { path: 'complaints', component: () => import('@/views/admin/Complaints.vue') }
       ]
     },
-    { path: '/:pathMatch(.*)*', redirect: '/' }
+    { path: '/:pathMatch(.*)*', redirect: '/login' }
   ]
 })
 
@@ -44,7 +45,6 @@ function getAuthState() {
   const role = localStorage.getItem('xiyue_role') || ''
   const isValidRole = role === 'USER' || role === 'AUNT' || role === 'ADMIN'
   const homePath = role === 'ADMIN' ? '/admin/aunts' : role === 'AUNT' ? '/aunt/grab-list' : '/user/aunts'
-  // token 存在但 role 无效时视为未登录，避免角色路径不匹配导致无限重定向
   return { isLoggedIn: !!token && isValidRole, role, homePath }
 }
 
@@ -55,7 +55,6 @@ router.beforeEach((to, _from, next) => {
     return next()
   }
   if (!auth.isLoggedIn) return next('/login')
-  if (to.path === '/') return next(auth.homePath)
   if (to.path.startsWith('/admin') && auth.role !== 'ADMIN') return next(auth.homePath)
   if (to.path.startsWith('/user') && auth.role !== 'USER') return next(auth.homePath)
   if (to.path.startsWith('/aunt') && auth.role !== 'AUNT') return next(auth.homePath)
