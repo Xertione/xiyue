@@ -11,7 +11,17 @@
       <div class="detail-row"><span class="dl">联系人</span><span>{{ order.contactName }} {{ order.contactPhone }}</span></div>
       <div class="detail-row"><span class="dl">服务地址</span><span>{{ order.address }}</span></div>
       <div class="detail-row"><span class="dl">订单金额</span><span class="price">¥{{ order.amount }}</span></div>
-      <div v-if="order.completeImage" class="detail-row"><span class="dl">完成图片</span><van-image width="100" height="100" :src="order.completeImage" /></div>
+      <div v-if="completeImages.length" class="detail-row"><span class="dl">完成图片</span></div>
+      <div v-if="completeImages.length" class="image-row">
+        <van-image
+          v-for="(img, i) in completeImages"
+          :key="i"
+          width="80" height="80" fit="cover" radius="6"
+          :src="img"
+          @click="showPreview(i)"
+          style="margin-right: 8px; margin-bottom: 8px;"
+        />
+      </div>
     </div>
 
     <div class="page-pad">
@@ -19,19 +29,34 @@
       <van-button v-if="order.status === 3" type="primary" block round @click="showComplete = true" style="margin-bottom:8px">提交服务完成</van-button>
     </div>
 
-    <van-popup v-model:show="showComplete" round position="bottom" :style="{ minHeight: '35%' }">
+    <van-popup v-model:show="showComplete" round position="bottom" :style="{ minHeight: '40%' }">
       <div class="popup-body">
-        <div class="popup-title">提交服务完成</div>
-        <van-uploader v-model="fileList" :after-read="onUpload" accept="image/*" :max-count="1" class="popup-uploader" />
-        <van-button type="primary" block round :loading="acting" @click="complete">确认提交</van-button>
+        <div class="popup-title">提交服务完成（可上传多张）</div>
+        <van-uploader
+          v-model="fileList"
+          :after-read="onUpload"
+          accept="image/*"
+          multiple
+          :max-count="9"
+          class="popup-uploader"
+        />
+        <div class="popup-hint" v-if="fileList.length">已选择 {{ fileList.length }} 张图片</div>
+        <van-button type="primary" block round :loading="acting" @click="complete" style="margin-top:12px">确认提交</van-button>
       </div>
     </van-popup>
+
+    <van-image-preview
+      v-model:show="showImagePreview"
+      :images="completeImages"
+      :start-position="previewIndex"
+      @change="previewIndex = $event"
+    />
   </div>
   <div v-else class="empty-tip">加载中...</div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { orderApi, uploadApi } from '@/api'
@@ -44,6 +69,13 @@ const acting = ref(false)
 const showComplete = ref(false)
 const completeForm = ref({ imageUrl: '' })
 const fileList = ref<any[]>([])
+const showImagePreview = ref(false)
+const previewIndex = ref(0)
+
+const completeImages = computed(() => {
+  if (!order.value?.completeImage) return []
+  return order.value.completeImage.split(',').filter(Boolean)
+})
 
 onMounted(async () => {
   try { order.value = await orderApi.detail(Number(route.params.id)) } catch {}
@@ -55,7 +87,7 @@ async function start() {
 }
 
 async function complete() {
-  if (!completeForm.value.imageUrl) return showToast('请上传完成图片')
+  if (fileList.value.length === 0) return showToast('请上传完成图片')
   acting.value = true
   try {
     await orderApi.complete(order.value.id, completeForm.value.imageUrl)
@@ -70,12 +102,28 @@ async function complete() {
 async function onUpload(fileItem: any) {
   try {
     const res = await uploadApi.upload(fileItem.file)
-    completeForm.value.imageUrl = res.url
-    fileList.value = [{ url: res.url, status: 'done' }]
+    const uploadedUrl = res.url
+    // 追加到已有 URL 列表（逗号分隔）
+    if (completeForm.value.imageUrl) {
+      completeForm.value.imageUrl += ',' + uploadedUrl
+    } else {
+      completeForm.value.imageUrl = uploadedUrl
+    }
+    // fileList 已由 v-model 自动管理，只需确保 URL 正确
+    const idx = fileList.value.findIndex((f: any) => f === fileItem || f.file === fileItem.file)
+    if (idx >= 0) {
+      fileList.value[idx] = { ...fileList.value[idx], url: uploadedUrl, status: 'done' }
+    }
   } catch {
-    showToast('上传失败')
-    fileList.value = []
+    showToast('上传失败，请重试')
+    // 移除失败项
+    fileList.value = fileList.value.filter((f: any) => f.file !== fileItem.file)
   }
+}
+
+function showPreview(index: number) {
+  previewIndex.value = index
+  showImagePreview.value = true
 }
 
 async function loadData() {
@@ -88,8 +136,13 @@ async function loadData() {
 .order-no { color: #94a3b8; font-size: 12px; }
 .detail-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: #334155; }
 .dl { color: #94a3b8; }
+.image-row { display: flex; flex-wrap: wrap; }
 .popup-body { padding: 20px; }
 .popup-title { font-weight: 600; font-size: 16px; margin-bottom: 16px; }
-.popup-field { margin-bottom: 16px; border: 1px solid #e2e8f0; border-radius: 8px; }
-.popup-uploader { margin-bottom: 16px; }
+.popup-uploader { margin-bottom: 8px; }
+.popup-hint { font-size: 13px; color: #94a3b8; margin-bottom: 4px; }
+.page-pad { padding: 16px; }
+.card { background: #fff; margin: 10px; border-radius: 10px; padding: 16px; }
+.empty-tip { padding: 40px; text-align: center; color: #94a3b8; }
+.price { color: #e74c3c; font-weight: 600; }
 </style>

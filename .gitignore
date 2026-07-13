@@ -39,6 +39,7 @@ Thumbs.db
 target/
 node_modules/
 dist/
+uploads/
 
 # WorkBuddy working data (memory logs may include secrets)
 .workbuddy/

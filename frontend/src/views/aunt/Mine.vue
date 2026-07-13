@@ -6,6 +6,7 @@
       <van-switch :model-value="acceptOn" @update:model-value="toggleAccept" :loading="toggling" />
       <span class="accept-state">{{ acceptOn ? '可抢单' : '休息中' }}</span>
     </div>
+    <div class="accept-hint">休息中时不会被抢单大厅展示，也无法抢单</div>
     <van-tabs v-model:active="activeTab" @change="onRefresh">
       <van-tab title="待服务" />
       <van-tab title="服务中" />
@@ -73,6 +74,7 @@ async function toggleAccept(val: boolean) {
 .accept-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid #f1f5f9; }
 .accept-label { font-size: 14px; color: #475569; }
 .accept-state { font-size: 13px; color: #0d9488; font-weight: 500; }
+.accept-hint { font-size: 12px; color: #94a3b8; padding: 0 16px 8px; background: #fff; }
 .order-head { display: flex; justify-content: space-between; align-items: center; }
 .order-no { color: #94a3b8; font-size: 12px; }
 .order-info { color: #475569; font-size: 13px; margin-top: 6px; }

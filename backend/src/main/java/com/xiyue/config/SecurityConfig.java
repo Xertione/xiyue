@@ -64,8 +64,9 @@ public class SecurityConfig {
                     "/api/auth/login/**",
                     "/api/auth/reset-password",
                     "/api/auth/sms-code",
-                    // 模拟上传（MVP 阶段不做鉴权）
-                    "/api/upload/**"
+                    // 模拟上传（文件访问 + API）
+                    "/api/upload/**",
+                    "/mock-uploads/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

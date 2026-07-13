@@ -12,3 +12,10 @@
     </van-tabbar>
   </div>
 </template>
+
+<style scoped>
+.page {
+  min-height: 100dvh;
+  overflow-y: auto;
+}
+</style>
