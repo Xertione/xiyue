@@ -142,7 +142,7 @@ public class AuntService {
     }
 
     /**
-     * 管理员编辑阿姨资料（仅运营字段：name/avatar/price/skillTags/intro）。
+     * 管理员编辑阿姨资料（运营字段：name/avatar/price/age/experience/skillTags/intro）。
      * rating/serviceCount 由系统维护，admin_status/accept_status 通过独立接口更新。
      */
     public void updateByAdmin(Long id, AuntUpdateRequest req) {
@@ -158,6 +158,12 @@ public class AuntService {
         }
         if (req.getPrice() != null) {
             aunt.setPrice(req.getPrice());
+        }
+        if (req.getAge() != null) {
+            aunt.setAge(req.getAge());
+        }
+        if (req.getExperience() != null) {
+            aunt.setExperience(req.getExperience());
         }
         if (req.getSkillTags() != null) {
             aunt.setSkillTags(req.getSkillTags());

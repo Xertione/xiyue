@@ -58,6 +58,8 @@
 | name | VARCHAR(50) | NULL | 姓名（注册后可补充） |
 | avatar | VARCHAR(255) | NULL | 头像URL |
 | price | DECIMAL(10,2) | NULL | 标价（指定阿姨模式用） |
+| age | INT | NULL | 年龄 |
+| experience | INT | NULL | 入行年限 |
 | rating | DECIMAL(2,1) | NOT NULL DEFAULT 0.0 | 星级（0.0 - 5.0） |
 | service_count | INT | NOT NULL DEFAULT 0 | 服务次数 |
 | skill_tags | VARCHAR(255) | NULL | 技能标签（逗号分隔） |

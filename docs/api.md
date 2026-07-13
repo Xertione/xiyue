@@ -40,6 +40,9 @@
 | `/api/admin/aunts/{id}` | DELETE | ADMIN | 逻辑删除阿姨（存在进行中订单时拒绝，历史数据保留） |
 | `/api/admin/aunts/{id}/status` | PATCH | ADMIN | 上下架/禁用阿姨 |
 | `/api/aunts/me/status` | PATCH | AUNT | 阿姨设置个人接单状态 |
+| `/api/aunts/me/profile` | GET | AUNT | 获取个人资料（姓名、价格、年龄、年限等） |
+| `/api/aunts/me/profile` | PUT | AUNT | 编辑个人资料（仅更新非空字段） |
+| `/api/upload/mock` | POST | 公开 | 模拟上传图片，保存到 uploads/ 目录返回 URL |
 
 ---
 
@@ -61,8 +64,7 @@
 | `/api/admin/orders` | GET | ADMIN | 管理员查看全量订单 |
 | `/api/admin/orders/{id}/assign` | POST | ADMIN | 管理员指派阿姨 |
 
-> 阶段3已实现：创建/支付/取消/抢单/指派/列表/详情（共10接口）。
-> `start`/`complete`/`confirm` 留阶段4服务履约实现。
+> 阶段3+4已实现全部12个订单接口（含start/complete/confirm的服务履约链路由阶段4实现）。
 
 ---
 
