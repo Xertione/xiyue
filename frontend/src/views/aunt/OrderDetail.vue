@@ -42,6 +42,7 @@
         />
         <div class="popup-hint" v-if="fileList.length">已选择 {{ fileList.length }} 张图片</div>
         <van-button type="primary" block round :loading="acting" @click="complete" style="margin-top:12px">确认提交</van-button>
+        <van-button type="default" block round :loading="acting" @click="mockComplete" style="margin-top:8px">模拟提交（免传图）</van-button>
       </div>
     </van-popup>
 
@@ -92,6 +93,20 @@ async function complete() {
   try {
     await orderApi.complete(order.value.id, completeForm.value.imageUrl)
     showToast('已提交完成')
+    showComplete.value = false
+    completeForm.value.imageUrl = ''
+    fileList.value = []
+    loadData()
+  } catch {} finally { acting.value = false }
+}
+
+// 模拟提交：使用占位 URL，无需上传图片，方便测试
+async function mockComplete() {
+  acting.value = true
+  try {
+    const mockUrl = '/mock-uploads/mock-test-image.jpg'
+    await orderApi.complete(order.value.id, mockUrl)
+    showToast('模拟提交成功')
     showComplete.value = false
     completeForm.value.imageUrl = ''
     fileList.value = []

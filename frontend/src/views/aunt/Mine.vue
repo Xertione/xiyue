@@ -8,9 +8,9 @@
     </div>
     <div class="accept-hint">休息中时不会被抢单大厅展示，也无法抢单</div>
     <van-tabs v-model:active="activeTab" @change="onRefresh">
-      <van-tab title="待服务" />
-      <van-tab title="服务中" />
-      <van-tab title="全部" />
+      <van-tab :badge="tabBadge2" title="待服务" />
+      <van-tab :badge="tabBadge3" title="服务中" />
+      <van-tab :badge="tabBadgeAll" title="全部" />
     </van-tabs>
     <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="loadMore">
       <div v-if="list.length === 0 && !loading" class="empty-tip">暂无订单</div>
@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { orderApi, auntApi } from '@/api'
@@ -44,7 +44,29 @@ const size = 10
 const acceptOn = ref(true)
 const toggling = ref(false)
 
+// tab 红点计数
+const pendingCount2 = ref(0)
+const pendingCount3 = ref(0)
+const pendingCountAll = ref(0)
+
+const tabBadge2 = computed(() => pendingCount2.value > 0 ? String(pendingCount2.value) : '')
+const tabBadge3 = computed(() => pendingCount3.value > 0 ? String(pendingCount3.value) : '')
+const tabBadgeAll = computed(() => pendingCountAll.value > 0 ? String(pendingCountAll.value) : '')
+
 const statusMap = [2, 3, undefined]
+
+async function loadTabCounts() {
+  try {
+    const [r2, r3, rAll] = await Promise.all([
+      orderApi.mine({ page: 1, size: 1, status: 2 }),
+      orderApi.mine({ page: 1, size: 1, status: 3 }),
+      orderApi.mine({ page: 1, size: 1 })
+    ])
+    pendingCount2.value = (r2 as any)?.total ?? 0
+    pendingCount3.value = (r3 as any)?.total ?? 0
+    pendingCountAll.value = (rAll as any)?.total ?? 0
+  } catch { /* ignore */ }
+}
 
 async function loadData() {
   loading.value = true
@@ -58,7 +80,7 @@ async function loadData() {
 }
 
 function loadMore() { if (!finished.value) loadData() }
-function onRefresh() { page.value = 1; finished.value = false; list.value = []; loadData() }
+function onRefresh() { page.value = 1; finished.value = false; list.value = []; loadData(); loadTabCounts() }
 
 async function toggleAccept(val: boolean) {
   toggling.value = true
@@ -68,6 +90,8 @@ async function toggleAccept(val: boolean) {
     showToast(val ? '已切换为可抢单' : '已切换为休息')
   } catch {} finally { toggling.value = false }
 }
+
+onMounted(() => loadTabCounts())
 </script>
 
 <style scoped>
