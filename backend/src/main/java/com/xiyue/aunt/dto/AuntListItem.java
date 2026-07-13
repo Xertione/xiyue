@@ -26,6 +26,12 @@ public class AuntListItem {
     @Schema(description = "标价")
     private BigDecimal price;
 
+    @Schema(description = "年龄")
+    private Integer age;
+
+    @Schema(description = "入行年限")
+    private Integer experience;
+
     @Schema(description = "星级（0.0-5.0）")
     private BigDecimal rating;
 

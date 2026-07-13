@@ -359,3 +359,54 @@
   - 用户只能发布订单等待抢单，不能直接指定阿姨；
   - aunt.price 字段当前仅用于列表展示和排序，未参与订单计算；
   - 后续可在阶段 5+ 补充指定阿姨下单接口，CreateOrderRequest 加 auntId 字段。
+
+---
+
+## ADR-024：模拟上传采用本地文件 + WebMvcConfig 静态映射
+
+- **状态：** Accepted
+- **日期：** 2026-07-13
+- **背景：** MVP 阶段需要模拟图片上传功能（阿姨提交服务完成照片），但规范 §8 明确禁止"文件真实上传/OSS"。需要一种既简单又可验证的上传方案。
+- **决策：** 使用 `MockUploadController`（POST /api/upload/mock）接收 MultipartFile，保存到 `backend/uploads/` 目录；通过 `WebMvcConfig` 将 `/mock-uploads/**` 映射为静态资源路径。SecurityConfig 将 `/mock-uploads/**` + `/api/upload/**` 加入 permitAll 白名单。
+- **原因：**
+  - 本地文件落盘比纯 mock URL（无文件）更真实，可验证预览/展示全流程；
+  - WebMvcConfig 静态映射是 Spring Boot 标准做法，无需额外依赖；
+  - permitAll 白名单仅用于 MVP 测试，后续接 OSS 时移除。
+- **后果：**
+  - `uploads/` 目录已加入 .gitignore，不污染仓库；
+  - 前端 Vite 需配置 `/mock-uploads` 代理到后端 8080（T-012）；
+  - 后续接真实 OSS 时，替换 MockUploadController 即可，前端上传接口无需改动。
+
+---
+
+## ADR-025：阿姨自助编辑个人资料权限变更
+
+- **状态：** Accepted
+- **日期：** 2026-07-13
+- **背景：** 阶段 2 仅实现管理员编辑阿姨资料（PUT /api/admin/aunts/{id}），阿姨自己只能切换接单状态。用户反馈阿姨端应能自助完善个人资料（姓名、价格、年龄、入行年限、技能标签、简介）。
+- **决策：** 新增 `GET/PUT /api/aunts/me/profile` 端点（@PreAuthorize("hasRole('AUNT')")），允许阿姨查看和编辑自己的运营字段（name/price/age/experience/skillTags/intro）。管理员仍保留编辑权限（AuntUpdateRequest 同步加 age/experience）。阿姨列表和详情 DTO 同步补充 age/experience 字段。
+- **原因：**
+  - 阿姨自主维护资料是家政平台的常见需求，减轻管理员负担；
+  - age/experience 字段供用户选阿姨时参考（列表/详情页展示），非敏感信息；
+  - 系统维护字段（rating/serviceCount/adminStatus/acceptStatus）阿姨不可编辑，权限边界清晰。
+- **后果：**
+  - 管理员 PUT /api/admin/aunts/{id} 和阿姨 PUT /api/aunts/me/profile 的编辑范围一致（不含系统字段）；
+  - 列表/详情 DTO（AuntListItem/AuntDetail/AuntProfileResponse）均包含 age/experience；
+  - 前端阿姨端新增"个人中心"页面。
+
+---
+
+## ADR-026：Vite 前端代理 /mock-uploads 到后端
+
+- **状态：** Accepted
+- **日期：** 2026-07-13
+- **背景：** 开发模式下 Vite（5173）和 Spring Boot（8080）运行在不同端口。模拟上传返回的相对路径 `/mock-uploads/uuid.jpg` 从前端请求时会走 Vite（5173）而非后端（8080），导致图片 404 裂图。
+- **决策：** 在 `vite.config.ts` 的 proxy 配置中增加 `/mock-uploads` → `http://127.0.0.1:8080`，使前端能通过代理访问后端的模拟上传文件。
+- **原因：**
+  - 前后端分离开发的标准做法，Vite proxy 是官方推荐方案；
+  - 不改变后端 URL 生成逻辑（仍返回相对路径），保持代码简洁；
+  - 生产部署时由 Nginx 统一代理，无此问题。
+- **后果：**
+  - 开发模式下上传图片可正常预览和展示（见 T-012 排查过程）；
+  - 新增代理规则后需重启 Vite（`npm run dev`）生效；
+  - 生产环境省略此配置，由 docker-compose 的 nginx 处理。
