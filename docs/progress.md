@@ -76,6 +76,12 @@
 - [x] 模拟提交按钮（OrderDetail "模拟提交免传图"用占位 URL）
 - [x] 我的订单 tab 红点（待服务/服务中/全部每个 tab 独立 badge 计数）
 
+**v0.7.5（一致性修复 + URL 正则）：**
+- [x] `CompleteRequest` URL 正则修复（接受相对路径 `/xxx`）
+- [x] AuntUpdateRequest/AuntListItem/AuntDetail 补 age/experience
+- [x] database.md/api.md/decision-log.md/spec.md 一致性同步
+- [x] 新增 ADR-024/025/026（模拟上传方案、阿姨自助编辑权限、Vite 代理）
+
 ---
 
 ## 当前阻塞问题

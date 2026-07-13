@@ -5,6 +5,15 @@
 
 ---
 
+## [0.7.5] — 2026-07-13
+
+### Fixed
+
+- **提交服务完成始终报"URL 格式不正确"**：`CompleteRequest.java` 的 `@Pattern(regexp = "^https?://\\S+$")` 要求 imageUrl 必须是完整 http(s) URL，但模拟上传返回的是相对路径 `/mock-uploads/xxx.jpg`，导致校验永远失败。修复：正则改为 `^(https?://\\S+|/\\S+)$`，同时接受完整 URL 和以 `/` 开头的相对路径。
+- **一致性同步**：AuntUpdateRequest/AuntListItem/AuntDetail 补 age/experience 字段；database.md 补字段；api.md 补接口+修正阶段计数；decision-log 补 ADR-024/025/026；spec.md 补阿姨自助编辑描述。
+
+---
+
 ## [0.7.4] — 2026-07-13
 
 ### Fixed

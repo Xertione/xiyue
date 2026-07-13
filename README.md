@@ -53,14 +53,14 @@ xiyue-life/
 ├── docs/                              ← 项目文档（17 篇）
 │   ├── 01~07-*.md                     ← 规划文档（想法/待确认/MVP/规范/AI协作/计划/文档体系）
 │   ├── progress.md                    ← 开发进度（5 阶段全部完成）
-│   ├── troubleshooting.md             ← 踩坑记录（T-001~T-010）
-│   ├── decision-log.md                ← 架构决策（ADR-001~020）
+│   ├── troubleshooting.md             ← 踩坑记录（T-001~T-013）
+│   ├── decision-log.md                ← 架构决策（ADR-001~026）
 │   ├── architecture.md                ← 系统架构
 │   ├── database.md                    ← 数据库设计（6 表全建）
 │   ├── api.md                         ← 接口清单（全部实现）
 │   ├── test-cases.md                  ← 测试用例
 │   ├── deployment.md                  ← 部署手册
-│   └── changelog.md                   ← 更新记录（v0.7.4 最新）
+│   └── changelog.md                   ← 更新记录（v0.7.5 最新）
 ├── backend/                           ← ✅ Spring Boot 后端（阶段0~4 全部完成）
 │   ├── src/main/java/com/xiyue/      ← Java 源码（74 文件）
 │   │   ├── common/                    ← Result/异常/枚举/HealthController
@@ -107,10 +107,10 @@ xiyue-life/
 |---|---|
 | 文档体系 | ✅ 已完成（17 篇） |
 | 后端开发 | 🟢 阶段4完成（9状态订单状态机全打通，含画像/上传/个人资料） |
-| 前端开发 | 🟢 阶段5完成 + 三轮修复（v0.7.2~v0.7.4，上传/红点/下拉/退出/校验） |
+| 前端开发 | 🟢 MVP 完成（v0.7.5，含上传/红点/下拉/退出/校验/一致性同步） |
 | 部署 | 🟢 阶段5完成（Dockerfile + nginx + docker-compose 四服务） |
 
-### 5 阶段 MVP 全部完成（v0.7.4 持续修复中）
+### 5 阶段 MVP 全部完成（v0.7.5）
 
 1. ✅ 项目基础设施（Spring Boot 骨架 + Docker + 基础设施）
 2. ✅ 认证与注册（JWT + Spring Security + 验证码）
@@ -132,7 +132,7 @@ xiyue-life/
 | 参考已踩过的坑 | `docs/troubleshooting.md`（T-001~T-010） |
 | 查看接口清单 | `docs/api.md` |
 | 查看数据库设计 | `docs/database.md`（6 表 + 状态枚举 + 索引） |
-| 查看更新记录 | `docs/changelog.md`（v0.1.0~v0.7.4） |
+| 查看更新记录 | `docs/changelog.md`（v0.1.0~v0.7.5） |
 
 ---
 
