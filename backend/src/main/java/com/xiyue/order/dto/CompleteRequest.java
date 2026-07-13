@@ -12,6 +12,6 @@ public class CompleteRequest {
 
     /** 服务完成演示图片 URL */
     @NotBlank(message = "完成图片URL不能为空")
-    @Pattern(regexp = "^https?://\\S+$", message = "完成图片URL格式不正确")
+    @Pattern(regexp = "^(https?://\\S+|/\\S+)$", message = "完成图片URL格式不正确")
     private String imageUrl;
 }
