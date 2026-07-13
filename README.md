@@ -60,7 +60,7 @@ xiyue-life/
 │   ├── api.md                         ← 接口清单（全部实现）
 │   ├── test-cases.md                  ← 测试用例
 │   ├── deployment.md                  ← 部署手册
-│   └── changelog.md                   ← 更新记录（v0.7.0 阶段5）
+│   └── changelog.md                   ← 更新记录（v0.7.4 最新）
 ├── backend/                           ← ✅ Spring Boot 后端（阶段0~4 全部完成）
 │   ├── src/main/java/com/xiyue/      ← Java 源码（74 文件）
 │   │   ├── common/                    ← Result/异常/枚举/HealthController
@@ -106,11 +106,11 @@ xiyue-life/
 | 项目 | 状态 |
 |---|---|
 | 文档体系 | ✅ 已完成（17 篇） |
-| 后端开发 | 🟢 阶段4完成（9状态订单状态机全打通） |
-| 前端开发 | 🟢 阶段5完成（Vue3+Vant4+ElementPlus 三角色页面） |
+| 后端开发 | 🟢 阶段4完成（9状态订单状态机全打通，含画像/上传/个人资料） |
+| 前端开发 | 🟢 阶段5完成 + 三轮修复（v0.7.2~v0.7.4，上传/红点/下拉/退出/校验） |
 | 部署 | 🟢 阶段5完成（Dockerfile + nginx + docker-compose 四服务） |
 
-### 5 阶段 MVP 全部完成
+### 5 阶段 MVP 全部完成（v0.7.4 持续修复中）
 
 1. ✅ 项目基础设施（Spring Boot 骨架 + Docker + 基础设施）
 2. ✅ 认证与注册（JWT + Spring Security + 验证码）
@@ -132,7 +132,7 @@ xiyue-life/
 | 参考已踩过的坑 | `docs/troubleshooting.md`（T-001~T-010） |
 | 查看接口清单 | `docs/api.md` |
 | 查看数据库设计 | `docs/database.md`（6 表 + 状态枚举 + 索引） |
-| 查看更新记录 | `docs/changelog.md`（v0.1.0~v0.7.0） |
+| 查看更新记录 | `docs/changelog.md`（v0.1.0~v0.7.4） |
 
 ---
 

@@ -151,3 +151,30 @@
   2. 通配符 `/:pathMatch(.*)*` 的 redirect 从 `'/'` 改为 `'/login'`。
 - **验证：** 修复后访问 `/` → redirect `/login` → 守卫检查（未登录）→ `next()` → 登录页正常显示 ✓
 - **规则固化：** Vue Router 4 通配符路由的 `redirect` 目标**必须是已显式定义的路由路径**，不能 redirect 到会再次匹配通配符的路径（如 `/` 未定义时 redirect `/`）。排查路由问题时，先确认 `resolve` 阶段是否正常，再查守卫。
+
+---
+
+## T-012 图片上传裂图 / URL 格式不正确 / 黑屏无法退出
+
+**现象：**
+
+1. 点击"加图片"图标上传后，提示"URL 格式不正确"。
+2. 上传后前端页面显示的图片是裂开的。
+3. 点击裂图查看详情时，跳转至全黑界面，且无法退出。
+
+**排查过程：**
+
+1. 检查 MockUploadController → 最初返回 mock 路径 `/mock-uploads/uuid.jpg` 但不保存文件 → 图片 404 → 裂图；
+2. 改为真正保存文件到 `backend/uploads/` + `WebMvcConfig` 映射静态路径 + `SecurityConfig` 白名单 → 后端可访问，但前端仍裂图；
+3. **发现真正根因**：Vite 前端监听 5173 端口，`/mock-uploads/uuid.jpg` 从浏览器访问时走 Vite（5173），而文件在后端（8080）。Vite 没有 `/mock-uploads` 代理规则，导致 404。
+
+**原因：** Vite dev server 和 Spring Boot 后端运行在不同端口。前端页面中的相对路径图片 URL 在没有代理的情况下会请求到错误的服务端。
+
+**解决方案：**
+
+1. `vite.config.ts` 加代理规则：`'/mock-uploads': { target: 'http://127.0.0.1:8080', changeOrigin: true }`
+2. 重启 Vite 使代理生效。
+
+**验证：** 修复后上传图片 → URL 可正常加载 → 不裂图 → 点击可放大查看 → 支持关闭退出 ✓
+
+**规则固化：** 前后端分离开发时，后端生成的资源 URL（文件上传、静态资源等）必须在 Vite 代理中配置对应的路径转发，否则前端请求会发到 Vite 而非后端。

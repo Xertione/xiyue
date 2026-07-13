@@ -54,6 +54,28 @@
 | teal 主题定制（Vant + Element Plus） | ✅ |
 | docker-compose 四服务配置 | ✅ |
 
+### 阶段 5 后续修复（v0.7.2 → v0.7.4，2026-07-13）
+
+**v0.7.2（5 项修复）：**
+- [x] SMS 发送间隔 60s→30s，倒计时加固
+- [x] 退出登录（用户端+阿姨端底部 tab"我的"→退出按钮）
+- [x] 阿姨端导航栏小红点（待服务+服务中订单计数 badge）
+- [x] 模拟图片上传（MockUploadController + van-uploader）
+- [x] 阿姨个人信息设置（GET/PUT /api/aunts/me/profile + 前端表单）
+
+**v0.7.3（6 项修复）：**
+- [x] 上传裂图→真实落盘（WebMvcConfig + SecurityConfig 白名单 /mock-uploads/**）
+- [x] 多图上传（max-count=9 + 逗号拼接 + ImagePreview 放大）
+- [x] 小红点 bug 修复（r2.total 非 r2.data.total + onMounted）
+- [x] 下拉刷新无效（Layout CSS min-height + overflow-y: auto）
+- [x] 个人资料保存失败（前端校验姓名/年龄/年限 + 后端错误提示）
+- [x] 可接单按钮说明文字
+
+**v0.7.4（3 项修复）：**
+- [x] 图片 URL 裂图（vite.config.ts 加 /mock-uploads 代理）
+- [x] 模拟提交按钮（OrderDetail "模拟提交免传图"用占位 URL）
+- [x] 我的订单 tab 红点（待服务/服务中/全部每个 tab 独立 badge 计数）
+
 ---
 
 ## 当前阻塞问题

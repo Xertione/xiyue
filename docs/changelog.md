@@ -5,6 +5,46 @@
 
 ---
 
+## [0.7.4] — 2026-07-13
+
+### Fixed
+
+- **图片 URL 裂图**：Vite 前端 5173 未代理 `/mock-uploads`，图片请求走 5173 而非后端 8080。修复：`vite.config.ts` 加 `/mock-uploads` → `http://127.0.0.1:8080` 代理。同时 `MockUploadController` 改为真实保存文件到 `backend/uploads/`，`WebMvcConfig` 映射静态路径，`SecurityConfig` 白名单放行。
+- **模拟提交按钮**：`OrderDetail.vue` "提交服务完成"弹窗加"模拟提交（免传图）"按钮，用占位 URL `/mock-uploads/mock-test-image.jpg` 提交，无需上传图片即可测试服务完成流程。
+- **我的订单三 tab 红点**：`Mine.vue` 三个 `van-tab`（待服务/服务中/全部）加 `:badge` 计数，`onMounted` 和 tab 切换时调用 `loadTabCounts()` 统计各状态订单数。
+
+---
+
+## [0.7.3] — 2026-07-13
+
+### Fixed
+
+- **上传裂图、URL 格式不正确、黑屏无法退出**：MockUploadController 改为真实保存文件到 `backend/uploads/`，新建 `WebMvcConfig` 映射 `/mock-uploads/**` → `file:uploads/`，`SecurityConfig` 白名单加 `/mock-uploads/**`。图片可通过 HTTP 真正访问，不再裂图。
+- **仅支持单张图片**：`OrderDetail.vue` 改为 `multiple` + `:max-count="9"`，imageUrl 逗号拼接多 URL，加 `van-image-preview` 点击放大。
+- **小红点不显示**：`AuntLayout` 响应解包 bug（`r2.data.total` → `r2.total`，拦截器已解包 Result.data）+ 加 `onMounted`（首次进入不走 `onActivated`）。
+- **下拉刷新无效**：`AuntLayout` + `UserLayout` 加 `min-height: 100dvh; overflow-y: auto` CSS（`van-pull-refresh` 需要可滚动容器）。
+- **个人资料保存失败**：`Profile.vue` GET 响应解包修复（`res.data` → `res`），加前端校验（姓名非纯数字、年龄 18-100、入行年限 0-60），catch 显示后端具体错误消息。
+- **可接单说明**：`Mine.vue` 加提示文字"休息中时不会被抢单大厅展示，也无法抢单"。
+- **.gitignore**：加 `uploads/` 忽略上传目录。
+
+---
+
+## [0.7.2] — 2026-07-13
+
+### Fixed
+
+- **短信发送间隔**：`application.yml` `resend-interval-seconds` 60→30，`Register.vue` sendCode catch 也启动倒计时（频率限制时按钮也有反馈）。
+- **退出登录缺失**：`UserLayout` + `AuntLayout` 加第三个 tabbar "我的"，创建 `user/Profile.vue` + `aunt/Profile.vue`（含退出按钮），router 加 profile 路由。
+- **小红点缺失（导航栏）**：`AuntLayout` tabbar "我的订单"加 `:badge="pendingBadge"`，`onActivated` 调 API 统计待服务(2)+服务中(3) 订单数。
+
+### Added
+
+- **模拟图片上传**：`MockUploadController`（POST /api/upload/mock，免鉴权）+ `OrderDetail.vue` 用 `van-uploader` 替换 text URL 输入。
+- **阿姨个人信息设置**：`GET/PUT /api/aunts/me/profile`（AuntController），`UpdateAuntProfileRequest` + `AuntProfileResponse` DTO，aunt 实体+DB+schema.sql 加 age/experience 字段。`aunt/Profile.vue` 表单编辑+保存。
+- **vite --host**：`package.json` dev 命令加 `--host`。
+
+---
+
 ## [0.7.1] — 2026-07-13
 
 ### Fixed
