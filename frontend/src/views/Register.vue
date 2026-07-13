@@ -45,12 +45,21 @@ async function sendCode() {
   try {
     await authApi.smsCode(form.value.phone)
     showToast('验证码已发送')
-    counting.value = 60
+    counting.value = 30
     const timer = setInterval(() => {
       counting.value--
       if (counting.value <= 0) clearInterval(timer)
     }, 1000)
-  } catch { /* 拦截器已提示 */ }
+  } catch {
+    // 被后端频率限制拦截时也启动倒计时，确保 UI 有反馈
+    if (counting.value <= 0) {
+      counting.value = 30
+      const timer = setInterval(() => {
+        counting.value--
+        if (counting.value <= 0) clearInterval(timer)
+      }, 1000)
+    }
+  }
 }
 
 async function register() {

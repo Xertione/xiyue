@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS aunt (
     name          VARCHAR(50)   DEFAULT NULL COMMENT '姓名（注册后可补充）',
     avatar        VARCHAR(255)  DEFAULT NULL COMMENT '头像URL',
     price         DECIMAL(10,2) DEFAULT NULL COMMENT '标价（指定阿姨模式按此价计算）',
+    age           INT           DEFAULT NULL COMMENT '年龄',
+    experience    INT           DEFAULT NULL COMMENT '入行年限',
     rating        DECIMAL(2,1)  NOT NULL DEFAULT 0.0 COMMENT '星级（0.0 - 5.0）',
     service_count INT           NOT NULL DEFAULT 0 COMMENT '服务次数',
     skill_tags    VARCHAR(255)  DEFAULT NULL COMMENT '技能标签（逗号分隔）',

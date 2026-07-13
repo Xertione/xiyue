@@ -63,7 +63,9 @@ public class SecurityConfig {
                     "/api/auth/register",
                     "/api/auth/login/**",
                     "/api/auth/reset-password",
-                    "/api/auth/sms-code"
+                    "/api/auth/sms-code",
+                    // 模拟上传（MVP 阶段不做鉴权）
+                    "/api/upload/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

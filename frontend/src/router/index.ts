@@ -14,7 +14,8 @@ const router = createRouter({
         { path: 'aunts/:id', component: () => import('@/views/user/AuntDetail.vue') },
         { path: 'orders/create', component: () => import('@/views/user/CreateOrder.vue') },
         { path: 'orders', component: () => import('@/views/user/Orders.vue') },
-        { path: 'orders/:id', component: () => import('@/views/user/OrderDetail.vue') }
+        { path: 'orders/:id', component: () => import('@/views/user/OrderDetail.vue') },
+        { path: 'profile', component: () => import('@/views/user/Profile.vue') }
       ]
     },
     {
@@ -23,7 +24,8 @@ const router = createRouter({
       children: [
         { path: 'grab-list', component: () => import('@/views/aunt/GrabList.vue') },
         { path: 'mine', component: () => import('@/views/aunt/Mine.vue') },
-        { path: 'orders/:id', component: () => import('@/views/aunt/OrderDetail.vue') }
+        { path: 'orders/:id', component: () => import('@/views/aunt/OrderDetail.vue') },
+        { path: 'profile', component: () => import('@/views/aunt/Profile.vue') }
       ]
     },
     {

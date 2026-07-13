@@ -40,7 +40,7 @@ xiyue:
     phone: ${ADMIN_PHONE:13800000000}
   sms:
     # 发送验证码频率限制（秒），同一手机号间隔内只能发一次
-    resend-interval-seconds: 60
+    resend-interval-seconds: 30
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

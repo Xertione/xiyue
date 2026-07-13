@@ -236,6 +236,66 @@ public class AuntService {
         log.info("阿姨更新接单状态（userId={}, status={}）", userId, acceptStatus);
     }
 
+    /**
+     * 阿姨获取自己的个人资料（按 user_id 查 aunt 资料）。
+     */
+    public AuntProfileResponse getMyProfile(Long userId) {
+        Aunt aunt = auntMapper.selectOne(
+            new LambdaQueryWrapper<Aunt>().eq(Aunt::getUserId, userId)
+        );
+        if (aunt == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "阿姨资料不存在，仅阿姨角色可操作");
+        }
+        return AuntProfileResponse.builder()
+            .id(aunt.getId())
+            .name(aunt.getName())
+            .avatar(aunt.getAvatar())
+            .price(aunt.getPrice())
+            .age(aunt.getAge())
+            .experience(aunt.getExperience())
+            .skillTags(aunt.getSkillTags())
+            .intro(aunt.getIntro())
+            .rating(aunt.getRating())
+            .serviceCount(aunt.getServiceCount())
+            .build();
+    }
+
+    /**
+     * 阿姨自助编辑个人资料（按 user_id 查 aunt 资料，仅更新非空字段）。
+     */
+    public AuntProfileResponse updateMyProfile(Long userId, UpdateAuntProfileRequest req) {
+        Aunt aunt = auntMapper.selectOne(
+            new LambdaQueryWrapper<Aunt>().eq(Aunt::getUserId, userId)
+        );
+        if (aunt == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "阿姨资料不存在，仅阿姨角色可操作");
+        }
+        if (req.getName() != null) {
+            aunt.setName(req.getName());
+        }
+        if (req.getAvatar() != null) {
+            aunt.setAvatar(req.getAvatar());
+        }
+        if (req.getPrice() != null) {
+            aunt.setPrice(req.getPrice());
+        }
+        if (req.getAge() != null) {
+            aunt.setAge(req.getAge());
+        }
+        if (req.getExperience() != null) {
+            aunt.setExperience(req.getExperience());
+        }
+        if (req.getSkillTags() != null) {
+            aunt.setSkillTags(req.getSkillTags());
+        }
+        if (req.getIntro() != null) {
+            aunt.setIntro(req.getIntro());
+        }
+        auntMapper.updateById(aunt);
+        log.info("阿姨自助编辑个人资料（userId={}）", userId);
+        return getMyProfile(userId);
+    }
+
     // ===== 内部转换 =====
 
     private AuntListItem toListItem(Aunt aunt) {

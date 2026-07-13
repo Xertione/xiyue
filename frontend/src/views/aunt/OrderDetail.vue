@@ -22,7 +22,7 @@
     <van-popup v-model:show="showComplete" round position="bottom" :style="{ minHeight: '35%' }">
       <div class="popup-body">
         <div class="popup-title">提交服务完成</div>
-        <van-field v-model="completeForm.imageUrl" placeholder="请输入完成图片URL" class="popup-field" />
+        <van-uploader v-model="fileList" :after-read="onUpload" accept="image/*" :max-count="1" class="popup-uploader" />
         <van-button type="primary" block round :loading="acting" @click="complete">确认提交</van-button>
       </div>
     </van-popup>
@@ -34,7 +34,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { orderApi } from '@/api'
+import { orderApi, uploadApi } from '@/api'
 import { orderStatus as st } from '@/utils/format'
 
 const route = useRoute()
@@ -43,6 +43,7 @@ const order = ref<any>(null)
 const acting = ref(false)
 const showComplete = ref(false)
 const completeForm = ref({ imageUrl: '' })
+const fileList = ref<any[]>([])
 
 onMounted(async () => {
   try { order.value = await orderApi.detail(Number(route.params.id)) } catch {}
@@ -54,14 +55,27 @@ async function start() {
 }
 
 async function complete() {
-  if (!completeForm.value.imageUrl) return showToast('请输入完成图片URL')
+  if (!completeForm.value.imageUrl) return showToast('请上传完成图片')
   acting.value = true
   try {
     await orderApi.complete(order.value.id, completeForm.value.imageUrl)
     showToast('已提交完成')
     showComplete.value = false
+    completeForm.value.imageUrl = ''
+    fileList.value = []
     loadData()
   } catch {} finally { acting.value = false }
+}
+
+async function onUpload(fileItem: any) {
+  try {
+    const res = await uploadApi.upload(fileItem.file)
+    completeForm.value.imageUrl = res.url
+    fileList.value = [{ url: res.url, status: 'done' }]
+  } catch {
+    showToast('上传失败')
+    fileList.value = []
+  }
 }
 
 async function loadData() {
@@ -77,4 +91,5 @@ async function loadData() {
 .popup-body { padding: 20px; }
 .popup-title { font-weight: 600; font-size: 16px; margin-bottom: 16px; }
 .popup-field { margin-bottom: 16px; border: 1px solid #e2e8f0; border-radius: 8px; }
+.popup-uploader { margin-bottom: 16px; }
 </style>

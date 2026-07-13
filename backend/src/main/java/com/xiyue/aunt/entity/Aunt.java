@@ -54,6 +54,12 @@ public class Aunt implements Serializable {
     /** 服务次数 */
     private Integer serviceCount;
 
+    /** 年龄 */
+    private Integer age;
+
+    /** 入行年限 */
+    private Integer experience;
+
     /** 技能标签（逗号分隔） */
     private String skillTags;
 

@@ -3,6 +3,8 @@ package com.xiyue.aunt.controller;
 import com.xiyue.aunt.dto.AuntAcceptStatusRequest;
 import com.xiyue.aunt.dto.AuntDetail;
 import com.xiyue.aunt.dto.AuntListItem;
+import com.xiyue.aunt.dto.AuntProfileResponse;
+import com.xiyue.aunt.dto.UpdateAuntProfileRequest;
 import com.xiyue.aunt.service.AuntService;
 import com.xiyue.common.result.PageResponse;
 import com.xiyue.common.result.Result;
@@ -64,5 +66,23 @@ public class AuntController {
         Long userId = securityUserContext.getCurrentUserId();
         auntService.updateMyAcceptStatus(userId, req.getAcceptStatus());
         return Result.success();
+    }
+
+    @Operation(summary = "获取个人资料", description = "阿姨查看自己的个人资料")
+    @GetMapping("/me/profile")
+    @PreAuthorize("hasRole('AUNT')")
+    @Tag(name = "阿姨-个人中心")
+    public Result<AuntProfileResponse> getMyProfile() {
+        Long userId = securityUserContext.getCurrentUserId();
+        return Result.success(auntService.getMyProfile(userId));
+    }
+
+    @Operation(summary = "更新个人资料", description = "阿姨自助编辑个人资料，仅更新非空字段")
+    @PutMapping("/me/profile")
+    @PreAuthorize("hasRole('AUNT')")
+    @Tag(name = "阿姨-个人中心")
+    public Result<AuntProfileResponse> updateMyProfile(@Valid @RequestBody UpdateAuntProfileRequest req) {
+        Long userId = securityUserContext.getCurrentUserId();
+        return Result.success(auntService.updateMyProfile(userId, req));
     }
 }

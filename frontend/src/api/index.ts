@@ -22,6 +22,12 @@ export const auntApi = {
   myAcceptStatus: (status: string) => request.patch('/aunts/me/status', { acceptStatus: status })
 }
 
+// ===== 阿姨-个人中心 =====
+export const auntProfileApi = {
+  get: () => request.get('/aunts/me/profile'),
+  update: (data: Record<string, any>) => request.put('/aunts/me/profile', data)
+}
+
 // ===== 管理员-阿姨 =====
 export const adminAuntApi = {
   list: (params: { page: number; size: number }) => request.get('/admin/aunts', { params }),
@@ -58,6 +64,17 @@ export const adminOrderApi = {
 export const reviewApi = {
   create: (data: { orderId: number; rating: number; content: string }) => request.post('/reviews', data),
   getByOrder: (orderId: number) => request.get(`/orders/${orderId}/review`)
+}
+
+// ===== 上传 =====
+export const uploadApi = {
+  upload: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request.post('/upload/mock', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  }
 }
 
 // ===== 投诉 =====
