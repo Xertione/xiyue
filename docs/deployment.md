@@ -35,13 +35,14 @@ cp .env.example .env
 # .env 不得提交到 Git；JWT_SECRET 至少 32 字节且不得使用默认短字符串
 
 # 3. 启动服务
-docker compose up -d
+docker compose up -d --build
 
 # 4. 查看日志
 docker compose logs -f
 
 # 5. 初始化数据库
-# 执行 init.sql 或等 Spring Boot 自动初始化
+# 数据库表由 Spring Boot 启动时自动执行 schema.sql 创建；
+# ADMIN 账号由 AdminAccountInitializer 自动创建（密码取自 .env 的 ADMIN_INIT_PASSWORD）
 
 # 6. 验证
 curl http://<公网IP>/api/health
@@ -56,7 +57,7 @@ curl http://<公网IP>/api/health
 | mysql | mysql:8.0 | 3306 | 不暴露 | 仅 Compose 内部网络访问 |
 | redis | redis:7.0 | 6379 | 不暴露 | 仅 Compose 内部网络访问 |
 | backend | 自定义 | 8080 | - | Spring Boot 后端 |
-| nginx | nginx:latest | 80 | 80 | 前端 + 反向代理 |
+| frontend | 自定义 | 80 | 80 | 前端（Nginx 托管静态文件 + /api 反代） |
 
 ---
 
@@ -93,6 +94,7 @@ curl http://<公网IP>/api/health
 |---|---|---|
 | mysql | ./docker/mysql/data:/var/lib/mysql | 数据库持久化 |
 | redis | ./docker/redis/data:/data | Redis 持久化 |
+| backend | ./backend/uploads:/app/uploads | 模拟上传文件持久化（后续接 OSS 后移除） |
 
 ---
 

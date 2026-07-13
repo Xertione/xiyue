@@ -22,6 +22,7 @@
   1. Maven 的启动器 jar 在 `boot/` 不是 `lib/`，排查时先看 `mvn` 脚本的 `CLASSWORLDS_JAR` 赋值行。
   2. Windows 程序不认 MSYS `/c/` 路径，传给 java.exe 的路径必须 `C:/` 格式。
   3. 先确认真因再下结论，不要因为「在某个目录没找到文件」就判定损坏。
+- **规则固化：** 排查 Maven 问题时先看 mvn 脚本的 CLASSWORLDS_JAR 赋值行；Windows 程序不认 MSYS `/c/` 路径，传给 java.exe 的路径必须用 `C:/` 格式；先确认真因再动手。
 
 ---
 
@@ -65,7 +66,7 @@
 - **原因：** 本机安装了 Memurai（Windows Redis 兼容服务，`memurai.exe` PID 7048）作为开机自启服务监听 `127.0.0.1:6379`，与 Docker Redis 容器端口冲突。
 - **尝试：** `sc stop Memurai` 被安全策略禁用（系统级工具）。
 - **解决方案：** 将 docker-compose.yml 中 Redis 宿主映射改为 `127.0.0.1:6380:6379`（容器内仍是 6379），application.yml 中 `spring.data.redis.port` 默认 6380。生产环境 Redis 不暴露端口（容器内通信），不受影响。
-- **教训：** 本机已有 Redis 兼容服务时，Docker Redis 需避让端口；开发用 6380，部署用容器网络。
+- **规则固化：** 本机已有 Redis 兼容服务时，Docker Redis 需避让端口；开发用 6380，部署用容器网络。
 
 ---
 
@@ -75,7 +76,7 @@
 - **现象：** application.yml 配 `server.port: 8080`，但 `mvn spring-boot:run` 启动日志显示 `Tomcat initialized with port 2018`，且 2018 被 WorkBuddy.exe（PID 14988）占用导致启动失败。
 - **排查：** `SERVER_PORT`/`MAVEN_OPTS`/`JAVA_TOOL_OPTIONS` 环境变量均为空；mvn17 wrapper 未传 `-Dserver.port`；target/classes/application.yml 编译后仍是 8080；无 application.properties 覆盖。根因（高于 application.yml 的隐藏配置源）未完全定位。
 - **解决方案：** 启动时用最高优先级的命令行参数强制：`mvn17.sh spring-boot:run -Dspring-boot.run.arguments=--server.port=8080`。应用正确在 8080 启动，`GET /api/health` 返回 200。
-- **教训：** 当 application.yml 的端口被未知源覆盖时，用 `--server.port` 命令行参数（优先级最高）强制；后续可排查 IDEA/Maven 全局配置或环境变量是否注入。
+- **规则固化：** 当 application.yml 的端口被未知源覆盖时，用 `--server.port` 命令行参数（优先级最高）强制覆盖。
 
 ---
 
@@ -101,7 +102,7 @@
 - **解决方案：** 这不是数据问题，无需修复。需要确认中文数据时：
   1. 优先用接口返回验证（接口走 Spring Boot UTF-8 响应）；
   2. 或 `docker exec xiyue-mysql mysql --default-character-set=utf8mb4 -uroot -p<MYSQL_ROOT_PASSWORD> -e "..."` 显式指定客户端字符集。
-- **教训：** 看到 mysql 命令行中文乱码时，先通过接口或 `--default-character-set=utf8mb4` 复核，不要直接判定数据损坏。
+- **规则固化：** mysql 命令行中文乱码时，先通过接口返回或 `--default-character-set=utf8mb4` 复核，不要直接判定数据损坏。
 
 ---
 
@@ -117,7 +118,7 @@
 - **解决方案：** 这不是接口缺陷，无需修复。需要测试含中文的请求时：
   1. 用 python `urllib.request` + `.encode('utf-8')` 发送（推荐）；
   2. 或前端 axios（浏览器自动 UTF-8）。
-- **教训：** curl 中文 body 400 时，先用 python/前端验证排除接口缺陷，不要误判为代码问题。
+- **规则固化：** curl 中文 body 400 时，先用 python/前端验证排除接口缺陷，不要误判为代码问题。
 
 ---
 
@@ -154,7 +155,7 @@
 
 ---
 
-## T-012 图片上传裂图 / URL 格式不正确 / 黑屏无法退出
+## T-012：图片上传裂图 / URL 格式不正确 / 黑屏无法退出
 
 **现象：**
 

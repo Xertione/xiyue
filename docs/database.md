@@ -198,7 +198,7 @@
 | create_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP | 创建时间 |
 | update_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
 
-引擎 InnoDB，字符集 utf8mb4。评价后订单变为已完成，并更新阿姨评分（加权平均）与服务次数（ADR-020）。
+引擎 InnoDB，字符集 utf8mb4。评价后订单变为已完成，并更新阿姨评分（加权平均）与服务次数（ADR-021，SQL 原子更新替代了已废弃的 ADR-020 读-算-写方案）。
 
 ### complaint — 用户投诉（阶段4已建，简化版）
 
@@ -215,6 +215,18 @@
 | update_time | DATETIME | NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间 |
 
 引擎 InnoDB，字符集 utf8mb4。仅待评价订单可投诉；管理员处理后订单变为已完成，不再允许评价，不更新阿姨评分（ADR-019）。
+
+---
+
+## 模拟上传与静态文件
+
+开发模式下，`MockUploadController`（POST /api/upload/mock）接收图片保存到 `backend/uploads/` 目录。
+`WebMvcConfig` 将 `/mock-uploads/**` 映射为该目录的静态资源路径。
+`uploads/` 已加入 `.gitignore`，不上传的文件不污染仓库。
+
+生产部署时需在 docker-compose 中挂载 `uploads/` 数据卷以持久化文件（见 `docs/deployment.md`）。
+
+> 详细决策见 ADR-024（模拟上传方案）和 ADR-026（Vite 代理）。
 
 ---
 
