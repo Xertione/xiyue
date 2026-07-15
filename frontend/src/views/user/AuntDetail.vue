@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auntApi } from '@/api'
 
@@ -36,6 +36,10 @@ onMounted(async () => {
   try {
     aunt.value = await auntApi.detail(Number(route.params.id))
   } catch { /* 拦截器提示 */ }
+})
+// keep-alive 缓存下组件复用时 route param 变化不触发 onMounted，需手动 watch 重载
+watch(() => route.params.id, () => {
+  auntApi.detail(Number(route.params.id)).then(data => aunt.value = data).catch(() => {})
 })
 </script>
 

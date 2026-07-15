@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { orderApi, uploadApi } from '@/api'
@@ -81,6 +81,8 @@ const completeImages = computed(() => {
 onMounted(async () => {
   try { order.value = await orderApi.detail(Number(route.params.id)) } catch {}
 })
+// keep-alive 缓存下组件复用时 route param 变化不触发 onMounted，需手动 watch 重载
+watch(() => route.params.id, () => { loadData() })
 
 async function start() {
   acting.value = true

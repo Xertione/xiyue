@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showConfirmDialog } from 'vant'
 import { orderApi, reviewApi, complaintApi } from '@/api'
@@ -72,6 +72,8 @@ const reviewForm = ref({ rating: 5, content: '' })
 const complaintForm = ref({ reason: '' })
 
 onMounted(loadData)
+// keep-alive 缓存下组件复用时 route param 变化不触发 onMounted，需手动 watch 重载
+watch(() => route.params.id, () => { loadData() })
 
 async function loadData() {
   try {
