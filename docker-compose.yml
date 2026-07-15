@@ -43,7 +43,7 @@ services:
     container_name: xiyue-redis
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6380:6379"
+      - "127.0.0.1:16380:6379"  # Windows Docker 如报 127.0.0.1 端口权限错误，去掉前缀重试
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
@@ -85,6 +85,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -103,6 +109,12 @@ services:
       - "127.0.0.1:80:80"
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
