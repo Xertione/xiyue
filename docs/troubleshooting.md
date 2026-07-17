@@ -77,6 +77,7 @@
 - **排查：** `SERVER_PORT`/`MAVEN_OPTS`/`JAVA_TOOL_OPTIONS` 环境变量均为空；mvn17 wrapper 未传 `-Dserver.port`；target/classes/application.yml 编译后仍是 8080；无 application.properties 覆盖。根因（高于 application.yml 的隐藏配置源）未完全定位。
 - **解决方案：** 启动时用最高优先级的命令行参数强制：`mvn17.sh spring-boot:run -Dspring-boot.run.arguments=--server.port=8080`。应用正确在 8080 启动，`GET /api/health` 返回 200。
 - **规则固化：** 当 application.yml 的端口被未知源覆盖时，用 `--server.port` 命令行参数（优先级最高）强制覆盖。
+- **更新（2026-07-17）：** 本机 8080/8081/9090 等端口被 Windows TCP 端口排除策略保留（`netsh int ipv4 show excludedportrange`，安全策略禁执行），无论 netstat 是否显示占用都无法绑定。最终方案：默认端口改为 18080，docker-compose 容器内仍用 8080（`SERVER_PORT=8080`），宿主映射 18080→8080。
 
 ---
 

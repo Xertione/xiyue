@@ -23,11 +23,11 @@ cp .env.example .env   # 编辑 .env 填入本地密码
 # 1. 启动基础设施（MySQL + Redis）
 docker compose up -d mysql redis
 
-# 2. 启动后端（端口 8080）
+# 2. 启动后端（端口 18080，Windows 端口保留区避让，见 T-006）
 cd backend
-mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8080
+mvn spring-boot:run
 
-# 3. 启动前端（端口 5173，自动代理 /api、/mock-uploads → 8080）
+# 3. 启动前端（端口 5173，自动代理 /api、/mock-uploads → 18080）
 cd frontend
 npm install
 npm run dev
@@ -114,7 +114,7 @@ xiyue-life/
 │   │   └── styles/main.css            ← 全局样式 + teal 主题
 │   ├── Dockerfile                     ← 前端镜像（node build → nginx）
 │   ├── nginx.conf                     ← Nginx 配置（SPA + /api 反代）
-│   ├── vite.config.ts                 ← Vite 配置（代理 /api + /mock-uploads → 8080）
+│   ├── vite.config.ts                 ← Vite 配置（代理 /api + /mock-uploads → 18080）
 │   └── package.json
 ├── docker-compose.yml                 ← ✅ 四服务（mysql + redis + backend + frontend）
 ├── .env.example                       ← 环境变量模板（入库）
